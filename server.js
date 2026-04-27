@@ -10,9 +10,21 @@ app.use(express.json());
 
 // Resources Routes Import
 import leadsRoutes from "./routes/leads.routes.js";
+import businessRoutes from "./routes/business.routes.js";
+import donationsRoutes from "./routes/donations.routes.js";
+import institutionsRoutes from "./routes/institutions.routes.js";
+import needsRoutes from "./routes/needs.routes.js";
+import offersRoutes from "./routes/offers.routes.js";
+import patronsRoutes from "./routes/patrons.routes.js";
 
 // Apply Router
 app.use('/leads', leadsRoutes);
+app.use('/business', businessRoutes);
+app.use('/donations', donationsRoutes);
+app.use('/institutions', institutionsRoutes);
+app.use('/needs', needsRoutes);
+app.use('/offers', offersRoutes);
+app.use('/patrons', patronsRoutes);
 
 // Unknown Routes Handler
 app.use((req, res, next) => {
