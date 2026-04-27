@@ -19,7 +19,8 @@ import patronsRoutes from "./routes/patrons.routes.js";
 
 import vouchersRoutes from "./routes/vouchers.routes.js";
 import notificationsRoutes from "./routes/notifications.routes.js";
-import logsRoutes from "./routes/logs.routes.js"
+import logsRoutes from "./routes/logs.routes.js";
+import telemetryRoutes from "./routes/telemetry.routes.js"; 
 
 // Apply Router
 app.use('/leads', leadsRoutes);
