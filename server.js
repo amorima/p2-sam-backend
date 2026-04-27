@@ -9,8 +9,10 @@ const HOST = process.env.HOST;
 app.use(express.json());
 
 // Resources Routes Import
+import leadsRoutes from "./routes/leads.routes.js";
 
 // Apply Router
+app.use('/leads', leadsRoutes);
 
 // Unknown Routes Handler
 app.use((req, res, next) => {
