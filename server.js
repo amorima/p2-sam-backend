@@ -34,6 +34,7 @@ app.use('/patrons', patronsRoutes);
 app.use('/vouchers', vouchersRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/logs', logsRoutes);
+app.use('/telemetry', telemetryRoutes);
 
 // Unknown Routes Handler
 app.use((req, res, next) => {
