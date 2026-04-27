@@ -17,6 +17,10 @@ import needsRoutes from "./routes/needs.routes.js";
 import offersRoutes from "./routes/offers.routes.js";
 import patronsRoutes from "./routes/patrons.routes.js";
 
+import vouchersRoutes from "./routes/vouchers.routes.js";
+import notificationsRoutes from "./routes/notifications.routes.js";
+import logsRoutes from "./routes/logs.routes.js"
+
 // Apply Router
 app.use('/leads', leadsRoutes);
 app.use('/business', businessRoutes);
@@ -25,6 +29,10 @@ app.use('/institutions', institutionsRoutes);
 app.use('/needs', needsRoutes);
 app.use('/offers', offersRoutes);
 app.use('/patrons', patronsRoutes);
+
+app.use('/vouchers', vouchersRoutes);
+app.use('/notifications', notificationsRoutes);
+app.use('/logs', logsRoutes);
 
 // Unknown Routes Handler
 app.use((req, res, next) => {
