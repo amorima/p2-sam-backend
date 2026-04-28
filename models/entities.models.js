@@ -1,4 +1,4 @@
-export default (sequelize, DataType) => sequelize.define("Entity", {
+export default (sequelize, DataTypes) => sequelize.define("Entity", {
   nif_nipc: {
     type: DataTypes.STRING(9),
     primaryKey: true,

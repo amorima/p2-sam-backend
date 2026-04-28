@@ -138,16 +138,16 @@ Offers.belongsTo(Business, {
   foreignKey: "negocio_nif_nipc",
   targetKey: "nif_nipc",
 });
-Business.hasMany(Offer, {
+Business.hasMany(Offers, {
   foreignKey: "negocio_nif_nipc",
   sourceKey: "nif_nipc",
 });
 
-Offer.belongsTo(GoodsServices, {
+Offers.belongsTo(GoodsServices, {
   foreignKey: "tipo_bem_servico",
   targetKey: "tipo_bem_servico",
 });
-GoodsServices.hasMany(Offer, {
+GoodsServices.hasMany(Offers, {
   foreignKey: "tipo_bem_servico",
   sourceKey: "tipo_bem_servico",
 });
