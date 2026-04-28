@@ -53,7 +53,6 @@ import PatronsModel from "./patrons.models.js";
 const Patrons = PatronsModel(sequelize, DataTypes);
 
 // Define Relations
-// Relations
 Entities.belongsTo(Locations, {
   foreignKey: "codigo_postal",
   targetKey: "codigo_postal",
