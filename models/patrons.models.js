@@ -1,5 +1,12 @@
 export default (sequelize, DataTypes) => sequelize.define("patron", {
-    
-}, {
-  timestamps: false
-});
+   nif_nipc: {
+    type: DataTypes.STRING(9),
+    primaryKey: true,
+    allowNull: false,
+   },
+   },
+   {
+      tableName: "mecena",
+      timestamps: false,
+   }
+);
