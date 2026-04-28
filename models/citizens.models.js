@@ -5,6 +5,7 @@ export default (sequelize, DataTypes) => sequelize.define("Citizen", {
    },
    contacto: {
       type: DataTypes.STRING(13),
+      primaryKey: true,
       allowNull: false,
    },
    rgpd: {
