@@ -5,8 +5,8 @@ import * as notificationsController from "../controllers/notifications.controlle
 const router = express.Router();
 
 router.route('/')
-    .get()
-    .post()
-router.get('/:id')
+    .get(notificationsController.getAllNotification)
+    .post(notificationsController.createNotification)
+router.get('/:id', notificationsController.getNotification)
 
 export default router;

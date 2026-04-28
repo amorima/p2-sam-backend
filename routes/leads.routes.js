@@ -5,13 +5,13 @@ import * as leadsController from "../controllers/leads.controllers.js";
 const router = express.Router();
 
 router.route('/')
-    .get()
-    .post()
+    .get(leadsController.getAllLeads)
+    .post(leadsController.createLead)
 router.route('/:id_lead')
-    .get()
-    .patch()
-    .delete()
+    .get(leadsController.getLead)
+    .patch(leadsController.updateLead)
+    .delete(leadsController.deleteLead)
 router.route('/validate')
-    .post()
+    .post(leadsController.validateLead)
 
 export default router;

@@ -5,11 +5,11 @@ import * as offersController from "../controllers/offers.controllers.js";
 const router = express.Router();
 
 router.route('/')
-    .get()
-    .post()
+    .get(offersController.getAllOffers)
+    .post(offersController.createOffer)
 router.route('/:id_offer')
-    .get()
-    .patch()
-    .delete()
+    .get(offersController.getOffer)
+    .patch(offersController.updateOffer)
+    .delete(offersController.deleteOffer)
 
 export default router;

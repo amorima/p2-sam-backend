@@ -5,10 +5,10 @@ import * as vouchersController from "../controllers/vouchers.controllers.js";
 const router = express.Router();
 
 router.route('/')
-    .get()
-    .post()
+    .get(vouchersController.getAllVouchers)
+    .post(vouchersController.createVoucher)
 router.route('/:id')
-    .get()
-    .patch()
+    .get(vouchersController.getVoucher)
+    .patch(vouchersController.updateVoucher)
 
 export default router;

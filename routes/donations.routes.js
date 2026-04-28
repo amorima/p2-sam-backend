@@ -5,11 +5,11 @@ import * as donationsController from "../controllers/donations.controllers.js";
 const router = express.Router();
 
 router.route('/')
-    .get()
-    .post()
+    .get(donationsController.getAllDonations)
+    .post(donationsController.createDonation)
 router.route('/:id_donation')
-    .get()
-    .patch()
-    .delete()
+    .get(donationsController.getDonation)
+    .patch(donationsController.updateDonation)
+    .delete(donationsController.deleteDonation)
 
 export default router;

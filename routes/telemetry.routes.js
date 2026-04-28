@@ -5,9 +5,9 @@ import * as telemetryController from "../controllers/telemetry.controllers.js";
 const router = express.Router();
 
 router.route('/')
-    .get()
-    .post()
+    .get(telemetryController.getAllLockersTelemetry)
+    .post(telemetryController.createLockerTelemetry)
 router.route('/:id')
-    .get()
+    .get(telemetryController.getLockerTelemetry)
 
 export default router;

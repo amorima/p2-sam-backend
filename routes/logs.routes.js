@@ -5,9 +5,9 @@ import * as logsController from "../controllers/logs.controllers.js";
 const router = express.Router();
 
 router.route('/interactions')
-    .get()
-    .post()
-router.get('/financials')
-router.get('/financials/:id')
+    .get(logsController.getAllInteractionLogs)
+    .post(logsController.createInteractionLog)
+router.get('/financials', logsController.getAllFinancialLogs)
+router.get('/financials/:id', logsController.getFinancialLog)
 
 export default router;
