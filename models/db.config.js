@@ -1,6 +1,5 @@
 import { Sequelize, DataTypes } from "sequelize";
 import mongoose from 'mongoose';
-const { Schema, model } = mongoose;
 
 const mongoUri = process.env.MONGO_URI;
 const sequelize = new Sequelize(
@@ -66,7 +65,7 @@ const Patrons = PatronsModel(sequelize, DataTypes);
 import VouchersModel from "./vouchers.models.js";
 const Vouchers = VouchersModel(mongoose);
 import LockersTelemetryModel from "./locker_telemetry.models.js";
-const Lockers = LockersTelemetryModel(mongoose);
+const LockersTelemetry = LockersTelemetryModel(mongoose);
 import FinancialLogsModel from "./financial_logs.models.js";
 const FinancialLogs = FinancialLogsModel(mongoose);
 import InteractionLogsModel from "./interaction_logs.models.js";
@@ -201,4 +200,4 @@ try{
     process.exit(1)
 }
 
-export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons };
+export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications };
