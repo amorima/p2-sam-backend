@@ -1,33 +1,7 @@
 import { Business, Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
-import { formatResponse } from "../utils/response.utils.js";
+import { formatResponse, entityInclude } from "../utils/entityHelper.utils.js";
 
-export const entityInclude = [
-  {
-    model: Entities,
-    attributes: ["nif_nipc", "nome_entidade", "iban"],
-    include: [
-      {
-        model: Locations,
-        as: "locations",
-        through: { attributes: [] },
-        attributes: [
-          "codigo_postal",
-          "concelho",
-          "distrito",
-          "freguesia",
-          "pais",
-          "rua",
-          "n_porta",
-        ],
-      },
-      {
-        model: Contacts,
-        attributes: ["contacto", "nome_contacto", "descricao"],
-      },
-    ],
-  },
-];
 
 export const createBusiness = async (req, res, next) => {
   const { location, entity, contacts, business } = req.body;

@@ -26,3 +26,30 @@ export const formatResponse = ({ resource, entity, locations = [], contacts = []
     ...formatEntityBase({ entity, locations, contacts }),
     _links: links,
 });
+
+export const entityInclude = [
+  {
+    model: Entities,
+    attributes: ["nif_nipc", "nome_entidade", "iban"],
+    include: [
+      {
+        model: Locations,
+        as: "locations",
+        through: { attributes: [] },
+        attributes: [
+          "codigo_postal",
+          "concelho",
+          "distrito",
+          "freguesia",
+          "pais",
+          "rua",
+          "n_porta",
+        ],
+      },
+      {
+        model: Contacts,
+        attributes: ["contacto", "nome_contacto", "descricao"],
+      },
+    ],
+  },
+];
