@@ -133,25 +133,7 @@ export const getBusiness = async (req, res, next) => {
 
     if (!business) return next(notFoundError("Business", nif_nipc));
 
-    const entity = business.Entity && {
-      nif_nipc: business.Entity.nif_nipc,
-      nome_entidade: business.Entity.nome_entidade,
-      iban: business.Entity.iban,
-      locations: business.Entity.locations?.map(location => ({
-        codigo_postal: location.codigo_postal,
-        concelho: location.concelho,
-        distrito: location.distrito,
-        freguesia: location.freguesia,
-        pais: location.pais,
-        rua: location.rua,
-        n_porta: location.n_porta,
-      })),
-      contacts: business.Entity.Contacts?.map(contact => ({
-        contacto: contact.contacto,
-        nome_contacto: contact.nome_contacto,
-        descricao: contact.descricao,
-      })),
-    };
+    const entity = business.Entity;
 
     const response = {
       nif_nipc: business.nif_nipc,
@@ -159,7 +141,22 @@ export const getBusiness = async (req, res, next) => {
       geo_longitude: business.geo_longitude,
       url_certidao_permanente: business.url_certidao_permanente,
       inicio_atividade: business.inicio_atividade,
-      entity,
+      nome_entidade: entity?.nome_entidade,
+      iban: entity?.iban,
+      locations: entity?.locations?.map(location => ({
+        codigo_postal: location.codigo_postal,
+        concelho: location.concelho,
+        distrito: location.distrito,
+        freguesia: location.freguesia,
+        pais: location.pais,
+        rua: location.rua,
+        n_porta: location.n_porta,
+      })) ?? [],
+      contacts: entity?.Contacts?.map(contact => ({
+        contacto: contact.contacto,
+        nome_contacto: contact.nome_contacto,
+        descricao: contact.descricao,
+      })) ?? [],
       _links: {
         self: { href: `/business/${business.nif_nipc}`, method: "GET" },
         update: { href: `/business/${business.nif_nipc}`, method: "PATCH" },
@@ -197,22 +194,26 @@ export const getAllBusiness = async (req, res, next) => {
                 "n_porta",
               ],
             },
+            {
+              model: Contacts,
+              attributes: ["contacto", "nome_contacto", "descricao"],
+            },
           ],
         },
       ],
     });
 
-    const bList = businesses.map(b => ({
-      nif_nipc: b.nif_nipc,
-      geo_latitude: b.geo_latitude,
-      geo_longitude: b.geo_longitude,
-      url_certidao_permanente: b.url_certidao_permanente,
-      inicio_atividade: b.inicio_atividade,
-      entity: b.Entity && {
-        nif_nipc: b.Entity.nif_nipc,
-        nome_entidade: b.Entity.nome_entidade,
-        iban: b.Entity.iban,
-        locations: b.Entity.locations?.map(location => ({
+    const bList = businesses.map(b => {
+      const entity = b.Entity;
+      return {
+        nif_nipc: b.nif_nipc,
+        geo_latitude: b.geo_latitude,
+        geo_longitude: b.geo_longitude,
+        url_certidao_permanente: b.url_certidao_permanente,
+        inicio_atividade: b.inicio_atividade,
+        nome_entidade: entity?.nome_entidade,
+        iban: entity?.iban,
+        locations: entity?.locations?.map(location => ({
           codigo_postal: location.codigo_postal,
           concelho: location.concelho,
           distrito: location.distrito,
@@ -220,15 +221,20 @@ export const getAllBusiness = async (req, res, next) => {
           pais: location.pais,
           rua: location.rua,
           n_porta: location.n_porta,
-        })),
-      },
-      _links: {
-        self: { href: `/business/${b.nif_nipc}`, method: "GET" },
-        update: { href: `/business/${b.nif_nipc}`, method: "PATCH" },
-        delete: { href: `/business/${b.nif_nipc}`, method: "DELETE" },
-        postOffer: { href: `/business/${b.nif_nipc}/offers`, method: "POST" },
-      },
-    }));
+        })) ?? [],
+        contacts: entity?.Contacts?.map(contact => ({
+          contacto: contact.contacto,
+          nome_contacto: contact.nome_contacto,
+          descricao: contact.descricao,
+        })) ?? [],
+        _links: {
+          self: { href: `/business/${b.nif_nipc}`, method: "GET" },
+          update: { href: `/business/${b.nif_nipc}`, method: "PATCH" },
+          delete: { href: `/business/${b.nif_nipc}`, method: "DELETE" },
+          postOffer: { href: `/business/${b.nif_nipc}/offers`, method: "POST" },
+        },
+      };
+    });
 
     res.json({
       data: bList,
