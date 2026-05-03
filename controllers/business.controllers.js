@@ -2,6 +2,33 @@ import { Business, Entities, Locations, Contacts } from "../models/db.config.js"
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { formatResponse } from "../utils/response.utils.js";
 
+export const entityInclude = [
+  {
+    model: Entities,
+    attributes: ["nif_nipc", "nome_entidade", "iban"],
+    include: [
+      {
+        model: Locations,
+        as: "locations",
+        through: { attributes: [] },
+        attributes: [
+          "codigo_postal",
+          "concelho",
+          "distrito",
+          "freguesia",
+          "pais",
+          "rua",
+          "n_porta",
+        ],
+      },
+      {
+        model: Contacts,
+        attributes: ["contacto", "nome_contacto", "descricao"],
+      },
+    ],
+  },
+];
+
 export const createBusiness = async (req, res, next) => {
   const { location, entity, contacts, business } = req.body;
 
@@ -174,32 +201,7 @@ export const updateBusiness = async (req, res, next) => {
     await transaction.commit();
 
     const refreshedBusiness = await Business.findByPk(nif_nipc, {
-      include: [
-        {
-          model: Entities,
-          attributes: ["nif_nipc", "nome_entidade", "iban"],
-          include: [
-            {
-              model: Locations,
-              as: "locations",
-              through: { attributes: [] },
-              attributes: [
-                "codigo_postal",
-                "concelho",
-                "distrito",
-                "freguesia",
-                "pais",
-                "rua",
-                "n_porta",
-              ],
-            },
-            {
-              model: Contacts,
-              attributes: ["contacto", "nome_contacto", "descricao"],
-            },
-          ],
-        },
-      ],
+      include: entityInclude,
     });
 
     if (!refreshedBusiness) return next(notFoundError("Business", nif_nipc));
@@ -254,32 +256,7 @@ export const getBusiness = async (req, res, next) => {
   const { nif_nipc } = req.params;
   try {
     const business = await Business.findByPk(nif_nipc, {
-      include: [
-        {
-          model: Entities,
-          attributes: ["nif_nipc", "nome_entidade", "iban"],
-          include: [
-            {
-              model: Locations,
-              as: "locations",
-              through: { attributes: [] },
-              attributes: [
-                "codigo_postal",
-                "concelho",
-                "distrito",
-                "freguesia",
-                "pais",
-                "rua",
-                "n_porta",
-              ],
-            },
-            {
-              model: Contacts,
-              attributes: ["contacto", "nome_contacto", "descricao"],
-            },
-          ],
-        },
-      ],
+      include: entityInclude,
     });
 
     if (!business) return next(notFoundError("Business", nif_nipc));
@@ -315,32 +292,7 @@ export const getBusiness = async (req, res, next) => {
 export const getAllBusiness = async (req, res, next) => {
   try {
     const businesses = await Business.findAll({
-      include: [
-        {
-          model: Entities,
-          attributes: ["nif_nipc", "nome_entidade", "iban"],
-          include: [
-            {
-              model: Locations,
-              as: "locations",
-              through: { attributes: [] },
-              attributes: [
-                "codigo_postal",
-                "concelho",
-                "distrito",
-                "freguesia",
-                "pais",
-                "rua",
-                "n_porta",
-              ],
-            },
-            {
-              model: Contacts,
-              attributes: ["contacto", "nome_contacto", "descricao"],
-            },
-          ],
-        },
-      ],
+      include: entityInclude,
     });
 
     const bList = businesses.map((b) => {
