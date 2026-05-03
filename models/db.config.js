@@ -1,5 +1,7 @@
 import { Sequelize, DataTypes } from "sequelize";
+import mongoose from 'mongoose';
 
+const mongoUri = process.env.MONGO_URI;
 const sequelize = new Sequelize(
     process.env.DB_NAME,
     process.env.DB_USER,
@@ -10,12 +12,20 @@ const sequelize = new Sequelize(
     }
 )
 
+// Testing Connection
 try{
     await sequelize.authenticate();
     console.log("Connection has been established successfully.");
 } catch(e){
     console.error("Unable to connect to the database: ", e)
     process.exit(1);
+}
+try {
+  await mongoose.connect(mongoUri);
+  console.log("Connected to MongoDB successfully.");
+} catch (error) {
+  console.error("Unable to connect to MongoDB:", error);
+  process.exit(1);
 }
 
 // Models Import
@@ -52,14 +62,29 @@ const Panels = PanelsModel(sequelize, DataTypes);
 import PatronsModel from "./patrons.models.js";
 const Patrons = PatronsModel(sequelize, DataTypes);
 
+import VouchersModel from "./vouchers.models.js";
+const Vouchers = VouchersModel(mongoose);
+import LockersTelemetryModel from "./locker_telemetry.models.js";
+const LockersTelemetry = LockersTelemetryModel(mongoose);
+import FinancialLogsModel from "./financial_logs.models.js";
+const FinancialLogs = FinancialLogsModel(mongoose);
+import InteractionLogsModel from "./interaction_logs.models.js";
+const InteractionLogs = InteractionLogsModel(mongoose);
+import NotificationsModels from "./notifications.models.js";
+const Notifications = NotificationsModels(mongoose);
+
 // Define Relations
-Entities.belongsTo(Locations, {
-  foreignKey: "codigo_postal",
-  targetKey: "codigo_postal",
+Entities.belongsToMany(Locations, {
+  through: LocationEntity,
+  foreignKey: "entidade_nif_nipc",
+  otherKey: "localidade_codigo_postal",
+  as: "locations"
 });
-Locations.hasMany(Entities, {
-  foreignKey: "codigo_postal",
-  sourceKey: "codigo_postal",
+Locations.belongsToMany(Entities, {
+  through: LocationEntity,
+  foreignKey: "localidade_codigo_postal",
+  otherKey: "entidade_nif_nipc",
+  as: "entities"
 });
 
 Contacts.belongsTo(Entities, {
@@ -175,8 +200,8 @@ try{
     await sequelize.sync({alter: true})
     console.log("All models were synced")
 } catch(e) {
-    console.error("Error synching the models")
+    console.error("Error synching the models", e)
     process.exit(1)
 }
 
-export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons };
+export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications };

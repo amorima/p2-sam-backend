@@ -1,0 +1,14 @@
+name: deploy backend
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+    - name: atualizar código
+      run: |
+        cd ~/p2-sam-backend
+        git pull origin main
+        npm install
+        pm2 restart backend
