@@ -16,6 +16,7 @@ import institutionsRoutes from "./routes/institutions.routes.js";
 import needsRoutes from "./routes/needs.routes.js";
 import offersRoutes from "./routes/offers.routes.js";
 import patronsRoutes from "./routes/patrons.routes.js";
+import minioRoutes from "./routes/minio.routes.js";
 
 import vouchersRoutes from "./routes/vouchers.routes.js";
 import notificationsRoutes from "./routes/notifications.routes.js";
@@ -35,6 +36,8 @@ app.use('/vouchers', vouchersRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/logs', logsRoutes);
 app.use('/telemetry', telemetryRoutes);
+
+app.use("/api/upload", minioRoutes);
 
 // Unknown Routes Handler
 app.use((req, res, next) => {

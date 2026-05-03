@@ -1,0 +1,29 @@
+import * as Minio from "minio";
+
+const minioClient = new Minio.Client({
+  endPoint: process.env.MINIO_ENDPOINT,
+  port: Number(process.env.MINIO_PORT),
+  useSSL: process.env.MINIO_USE_SSL === 'true',
+  accessKey: process.env.MINIO_ACCESS_KEY,
+  secretKey: process.env.MINIO_SECRET_KEY
+})
+
+export const getPresignedUploadUrl = async (req, res, next) => {
+  const bucket = req.params.bucket;
+  const nomeFicheiro = req.query.nome;
+
+  if (!nomeFicheiro) {
+    return res.status(400).json({ erro: "Falta o nome do ficheiro" });
+  }
+
+  if (bucket !== "avatar" && bucket !== "files") {
+    return res.status(400).json({ erro: "Bucket não autorizado" });
+  }
+
+  try {
+    const url = await minioClient.presignedPutObject(bucket, nomeFicheiro, 86400);
+    res.json({ urlDeEnvio: url });
+  } catch (erro) {
+    next(erro);
+  }
+};
