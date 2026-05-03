@@ -1,5 +1,6 @@
 import { Business, Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
+import { formatResponse } from "../utils/response.utils.js";
 
 export const createBusiness = async (req, res, next) => {
   const { location, entity, contacts, business } = req.body;
@@ -34,35 +35,25 @@ export const createBusiness = async (req, res, next) => {
 
     await transaction.commit();
 
-    const businessResponse = {
-        nif_nipc: businessInstance.nif_nipc,
-        geo_latitude: businessInstance.geo_latitude,
-        geo_longitude: businessInstance.geo_longitude,
-        url_certidao_permanente: businessInstance.url_certidao_permanente,
-        inicio_atividade: businessInstance.inicio_atividade,
-        nome_entidade: entityInstance.nome_entidade,
-        iban: entityInstance.iban,
-        locations: [{
-            codigo_postal: locationInstance.codigo_postal,
-            concelho: locationInstance.concelho,
-            distrito: locationInstance.distrito,
-            freguesia: locationInstance.freguesia,
-            pais: locationInstance.pais,
-            rua: locationInstance.rua,
-            n_porta: locationInstance.n_porta,
-        }],
-        contacts: contacts?.map(({ contacto, nome_contacto, descricao }) => ({
-            contacto, nome_contacto, descricao
-        }))
-      ,
-      _links: {
-        allBusinesses: { href: "/business", method: "GET" },
-        self: { href: `/business/${businessInstance.nif_nipc}`, method: "GET" },
-        update: { href: `/business/${businessInstance.nif_nipc}`, method: "PATCH" },
-        delete: { href: `/business/${businessInstance.nif_nipc}`, method: "DELETE" },
-        postOffer: { href: `/business/${businessInstance.nif_nipc}/offers`, method: "POST" }
-      }
-    };
+    const businessResponse = formatResponse({
+        resource: {
+            nif_nipc: businessInstance.nif_nipc,
+            geo_latitude: businessInstance.geo_latitude,
+            geo_longitude: businessInstance.geo_longitude,
+            url_certidao_permanente: businessInstance.url_certidao_permanente,
+            inicio_atividade: businessInstance.inicio_atividade,
+        },
+        entity: entityInstance,
+        locations: [locationInstance],
+        contacts,
+        links: {
+            allBusinesses: { href: "/business", method: "GET" },
+            self: { href: `/business/${businessInstance.nif_nipc}`, method: "GET" },
+            update: { href: `/business/${businessInstance.nif_nipc}`, method: "PATCH" },
+            delete: { href: `/business/${businessInstance.nif_nipc}`, method: "DELETE" },
+            postOffer: { href: `/business/${businessInstance.nif_nipc}/offers`, method: "POST" },
+        },
+    });
 
     res.status(201).json(businessResponse);
     } catch (e) {
@@ -75,25 +66,115 @@ export const createBusiness = async (req, res, next) => {
 
 export const updateBusiness = async (req, res, next) => {
   const { nif_nipc } = req.params;
+  const { business: businessData, entity: entityData, locations, contacts } = req.body;
+  const transaction = await Business.sequelize.transaction();
+
   try {
-    const business = await Business.findByPk(nif_nipc);
+    const business = await Business.findByPk(nif_nipc, { transaction });
     if (!business) return next(notFoundError("Business", nif_nipc));
 
-    const updatedBusiness = await business.update(req.body);
+    const entity = await business.getEntity({ transaction });
+    if (!entity) return next(notFoundError("Entity", nif_nipc));
 
-    const response = {
-      ...updatedBusiness.toJSON(),
-      _links: {
-        self: { href: `/business/${updatedBusiness.nif_nipc}`, method: "GET" },
-        update: { href: `/business/${updatedBusiness.nif_nipc}`, method: "PATCH" },
-        delete: { href: `/business/${updatedBusiness.nif_nipc}`, method: "DELETE" },
-        postOffer: { href: `/business/${updatedBusiness.nif_nipc}/offers`, method: "POST" },
-        all: { href: "/business", method: "GET" }
+    if (businessData) {
+      await business.update(businessData, { transaction });
+    }
+
+    if (entityData) {
+      await entity.update(entityData, { transaction });
+    }
+
+    if (Array.isArray(locations)) {
+      const locationInstances = [];
+
+      for (const location of locations) {
+        const [locationInstance, created] = await Locations.findOrCreate({
+          where: { codigo_postal: location.codigo_postal },
+          defaults: location,
+          transaction,
+        });
+
+        if (!created) {
+          await locationInstance.update(location, { transaction });
+        }
+
+        locationInstances.push(locationInstance);
+      }
+
+      await entity.setLocations(locationInstances, { transaction });
+    }
+
+    if (Array.isArray(contacts)) {
+      await Contacts.destroy({
+        where: { entidade_nif_nipc: entity.nif_nipc },
+        transaction,
+      });
+
+      if (contacts.length) {
+        const contactsList = contacts.map((c) => ({
+          ...c,
+          entidade_nif_nipc: entity.nif_nipc,
+        }));
+        await Contacts.bulkCreate(contactsList, { transaction });
       }
     }
 
+    await transaction.commit();
+
+    const refreshedBusiness = await Business.findByPk(nif_nipc, {
+      include: [
+        {
+          model: Entities,
+          attributes: ["nif_nipc", "nome_entidade", "iban"],
+          include: [
+            {
+              model: Locations,
+              as: "locations",
+              through: { attributes: [] },
+              attributes: [
+                "codigo_postal",
+                "concelho",
+                "distrito",
+                "freguesia",
+                "pais",
+                "rua",
+                "n_porta",
+              ],
+            },
+            {
+              model: Contacts,
+              attributes: ["contacto", "nome_contacto", "descricao"],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!refreshedBusiness) return next(notFoundError("Business", nif_nipc));
+
+    const response = formatResponse({
+      resource: {
+        nif_nipc: refreshedBusiness.nif_nipc,
+        geo_latitude: refreshedBusiness.geo_latitude,
+        geo_longitude: refreshedBusiness.geo_longitude,
+        url_certidao_permanente: refreshedBusiness.url_certidao_permanente,
+        inicio_atividade: refreshedBusiness.inicio_atividade,
+      },
+      entity: refreshedBusiness.Entity,
+      locations: refreshedBusiness.Entity?.locations,
+      contacts: refreshedBusiness.Entity?.Contacts,
+      links: {
+        self: { href: `/business/${refreshedBusiness.nif_nipc}`, method: "GET" },
+        update: { href: `/business/${refreshedBusiness.nif_nipc}`, method: "PATCH" },
+        delete: { href: `/business/${refreshedBusiness.nif_nipc}`, method: "DELETE" },
+        postOffer: { href: `/business/${refreshedBusiness.nif_nipc}/offers`, method: "POST" },
+        all: { href: "/business", method: "GET" },
+      },
+    });
+
     res.json(response);
   } catch (e) {
+    await transaction.rollback();
     if (e.name === "SequelizeValidationError") next(sequelizeValidationError(e.errors));
     else next(genericError("Error updating business"));
   }
@@ -135,36 +216,25 @@ export const getBusiness = async (req, res, next) => {
 
     const entity = business.Entity;
 
-    const response = {
-      nif_nipc: business.nif_nipc,
-      geo_latitude: business.geo_latitude,
-      geo_longitude: business.geo_longitude,
-      url_certidao_permanente: business.url_certidao_permanente,
-      inicio_atividade: business.inicio_atividade,
-      nome_entidade: entity?.nome_entidade,
-      iban: entity?.iban,
-      locations: entity?.locations?.map(location => ({
-        codigo_postal: location.codigo_postal,
-        concelho: location.concelho,
-        distrito: location.distrito,
-        freguesia: location.freguesia,
-        pais: location.pais,
-        rua: location.rua,
-        n_porta: location.n_porta,
-      })) ?? [],
-      contacts: entity?.Contacts?.map(contact => ({
-        contacto: contact.contacto,
-        nome_contacto: contact.nome_contacto,
-        descricao: contact.descricao,
-      })) ?? [],
-      _links: {
-        self: { href: `/business/${business.nif_nipc}`, method: "GET" },
-        update: { href: `/business/${business.nif_nipc}`, method: "PATCH" },
-        delete: { href: `/business/${business.nif_nipc}`, method: "DELETE" },
-        postOffer: { href: `/business/${business.nif_nipc}/offers`, method: "POST" },
-        all: { href: "/business", method: "GET" },
-      },
-    };
+    const response = formatResponse({
+        resource: {
+            nif_nipc: business.nif_nipc,
+            geo_latitude: business.geo_latitude,
+            geo_longitude: business.geo_longitude,
+            url_certidao_permanente: business.url_certidao_permanente,
+            inicio_atividade: business.inicio_atividade,
+        },
+        entity,
+        locations: entity?.locations,
+        contacts: entity?.Contacts,
+        links: {
+            self: { href: `/business/${business.nif_nipc}`, method: "GET" },
+            update: { href: `/business/${business.nif_nipc}`, method: "PATCH" },
+            delete: { href: `/business/${business.nif_nipc}`, method: "DELETE" },
+            postOffer: { href: `/business/${business.nif_nipc}/offers`, method: "POST" },
+            all: { href: "/business", method: "GET" },
+        },
+    })
 
     res.json(response);
   } catch (e) {
@@ -203,37 +273,26 @@ export const getAllBusiness = async (req, res, next) => {
       ],
     });
 
-    const bList = businesses.map(b => {
-      const entity = b.Entity;
-      return {
-        nif_nipc: b.nif_nipc,
-        geo_latitude: b.geo_latitude,
-        geo_longitude: b.geo_longitude,
-        url_certidao_permanente: b.url_certidao_permanente,
-        inicio_atividade: b.inicio_atividade,
-        nome_entidade: entity?.nome_entidade,
-        iban: entity?.iban,
-        locations: entity?.locations?.map(location => ({
-          codigo_postal: location.codigo_postal,
-          concelho: location.concelho,
-          distrito: location.distrito,
-          freguesia: location.freguesia,
-          pais: location.pais,
-          rua: location.rua,
-          n_porta: location.n_porta,
-        })) ?? [],
-        contacts: entity?.Contacts?.map(contact => ({
-          contacto: contact.contacto,
-          nome_contacto: contact.nome_contacto,
-          descricao: contact.descricao,
-        })) ?? [],
-        _links: {
-          self: { href: `/business/${b.nif_nipc}`, method: "GET" },
-          update: { href: `/business/${b.nif_nipc}`, method: "PATCH" },
-          delete: { href: `/business/${b.nif_nipc}`, method: "DELETE" },
-          postOffer: { href: `/business/${b.nif_nipc}/offers`, method: "POST" },
-        },
-      };
+    const bList = businesses.map((b) => {
+    const entity = b.Entity;
+        return formatResponse({
+            resource: {
+                nif_nipc: b.nif_nipc,
+                geo_latitude: b.geo_latitude,
+                geo_longitude: b.geo_longitude,
+                url_certidao_permanente: b.url_certidao_permanente,
+                inicio_atividade: b.inicio_atividade,
+            },
+            entity,
+            locations: entity?.locations,
+            contacts: entity?.Contacts,
+            links: {
+                self: { href: `/business/${b.nif_nipc}`, method: "GET" },
+                update: { href: `/business/${b.nif_nipc}`, method: "PATCH" },
+                delete: { href: `/business/${b.nif_nipc}`, method: "DELETE" },
+                postOffer: { href: `/business/${b.nif_nipc}/offers`, method: "POST" },
+            },
+        });
     });
 
     res.json({
@@ -245,16 +304,35 @@ export const getAllBusiness = async (req, res, next) => {
   }
 };
 
-export const deleteBusiness = async(req, res, next) => {
-    const { nif_nipc } = req.params;
-    try{
-        const business = await Business.findByPk(nif_nipc);
-        if(!business) return next(notFoundError("Business", nif_nipc))
+export const deleteBusiness = async (req, res, next) => {
+  const { nif_nipc } = req.params;
+  const transaction = await Business.sequelize.transaction();
 
-        await business.destroy();
+  try {
+    const business = await Business.findByPk(nif_nipc, { transaction });
+    if (!business) return next(notFoundError("Business", nif_nipc));
 
-        res.status(204).send()
-    } catch(e){
-        next(genericError("Error deleting business"))
+    const entity = await business.getEntity({ transaction });
+    if (!entity) return next(notFoundError("Entity", nif_nipc));
+
+    const locations = await entity.getLocations({ transaction });
+
+    await Contacts.destroy({
+      where: { entidade_nif_nipc: entity.nif_nipc },
+      transaction,
+    });
+
+    if (locations.length) {
+      await entity.removeLocations(locations, { transaction });
     }
-}
+
+    await business.destroy({ transaction });
+    await entity.destroy({ transaction });
+
+    await transaction.commit();
+    res.status(204).send();
+  } catch (e) {
+    await transaction.rollback();
+    next(genericError("Error deleting business"));
+  }
+};
