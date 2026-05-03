@@ -74,13 +74,17 @@ import NotificationsModels from "./notifications.models.js";
 const Notifications = NotificationsModels(mongoose);
 
 // Define Relations
-Entities.belongsTo(Locations, {
-  foreignKey: "codigo_postal",
-  targetKey: "codigo_postal",
+Entities.belongsToMany(Locations, {
+  through: LocationEntity,
+  foreignKey: "entidade_nif_nipc",
+  otherKey: "localidade_codigo_postal",
+  as: "locations"
 });
-Locations.hasMany(Entities, {
-  foreignKey: "codigo_postal",
-  sourceKey: "codigo_postal",
+Locations.belongsToMany(Entities, {
+  through: LocationEntity,
+  foreignKey: "localidade_codigo_postal",
+  otherKey: "entidade_nif_nipc",
+  as: "entities"
 });
 
 Contacts.belongsTo(Entities, {

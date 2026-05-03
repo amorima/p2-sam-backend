@@ -17,6 +17,6 @@ export default (sequelize, DataTypes) => sequelize.define("Contact", {
    },
    },
    {
-      tableName: "Contacto",
+      tableName: "contacto",
       timestamps: false,
    });

@@ -18,13 +18,9 @@ export default (sequelize, DataTypes) => sequelize.define("Entity", {
     allowNull: false,
   },
   iban: {
-    type: DataTypes.STRING(23),
+    type: DataTypes.STRING(34),
     allowNull: true,
     unique: true,
-  },
-  codigo_postal: {
-    type: DataTypes.STRING(8),
-    allowNull: false,
   },
   },
   {
