@@ -1,6 +1,6 @@
 import { Patrons, Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
-import { formatResponse, entityInclude } from "../utils/entityHelper.utils.js";
+import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entityHelper.utils.js";
 
 export const createPatron = async (req, res, next) => {
   const { location, entity, contacts } = req.body;
@@ -16,39 +16,14 @@ export const createPatron = async (req, res, next) => {
   const transaction = await Patrons.sequelize.transaction();
 
   try {
-    const [locationInstance, locationCreated] = await Locations.findOrCreate({
-      where: { codigo_postal: location.codigo_postal },
-      defaults: location,
+    const { entityInstance, locationInstances } = await syncEntityRelations({
+      entity,
+      locations: [location],
+      contacts,
       transaction,
     });
 
-    if (!locationCreated) {
-      await locationInstance.update(location, { transaction });
-    }
-
-    const [entityInstance, entityCreated] = await Entities.findOrCreate({
-      where: { nif_nipc: entity.nif_nipc },
-      defaults: entity,
-      transaction,
-    });
-
-    if (!entityCreated) {
-      await entityInstance.update(entity, { transaction });
-    }
-
-    await entityInstance.addLocation(locationInstance, { transaction });
-
-    if (contacts?.length) {
-      const contactsList = contacts.map((c) => ({
-        ...c,
-        entidade_nif_nipc: entityInstance.nif_nipc,
-      }));
-      await Contacts.bulkCreate(contactsList, {
-        transaction,
-        ignoreDuplicates: true,
-      });
-    }
-
+    const locationInstance = locationInstances[0];
     const existingPatron = await Patrons.findByPk(entityInstance.nif_nipc, { transaction });
     if (existingPatron) {
       throw conflictError([{ patron: "Patron already exists for this entity" }]);
@@ -152,44 +127,15 @@ export const updatePatron = async (req, res, next) => {
     const entity = await patron.getEntity({ transaction });
     if (!entity) return next(notFoundError("Entity", nif_nipc));
 
-    if (entityData) {
-      await entity.update(entityData, { transaction });
-    }
-
-    if (Array.isArray(locations)) {
-      const locationInstances = [];
-
-      for (const location of locations) {
-        const [locationInstance, created] = await Locations.findOrCreate({
-          where: { codigo_postal: location.codigo_postal },
-          defaults: location,
-          transaction,
-        });
-
-        if (!created) {
-          await locationInstance.update(location, { transaction });
-        }
-
-        locationInstances.push(locationInstance);
-      }
-
-      await entity.setLocations(locationInstances, { transaction });
-    }
-
-    if (Array.isArray(contacts)) {
-      await Contacts.destroy({
-        where: { entidade_nif_nipc: entity.nif_nipc },
-        transaction,
-      });
-
-      if (contacts.length) {
-        const contactsList = contacts.map((c) => ({
-          ...c,
-          entidade_nif_nipc: entity.nif_nipc,
-        }));
-        await Contacts.bulkCreate(contactsList, { transaction });
-      }
-    }
+    await syncEntityRelations({
+      entity: entityData,
+      locations,
+      contacts,
+      transaction,
+      entityInstance: entity,
+      replaceLocations: Array.isArray(locations),
+      replaceContacts: Array.isArray(contacts),
+    });
 
     await transaction.commit();
 
