@@ -23,8 +23,6 @@ export const formatEntityBase = ({ entity, locations = [], contacts = [] }) => (
     contacts: (contacts || []).map(formatContact),
 });
 
-import { Entities, Locations, Contacts } from "../models/db.config.js";
-
 export const formatResponse = ({ resource, entity, locations = [], contacts = [], links }) => ({
     ...resource,
     ...formatEntityBase({ entity, locations, contacts }),

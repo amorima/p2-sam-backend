@@ -200,7 +200,7 @@ try{
     await sequelize.sync({alter: true})
     console.log("All models were synced")
 } catch(e) {
-    console.error("Error synching the models")
+    console.error("Error synching the models", e)
     process.exit(1)
 }
 
