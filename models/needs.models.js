@@ -2,6 +2,7 @@ export default (sequelize, DataTypes) => sequelize.define("need", {
    id_pedido: {
     type: DataTypes.INTEGER,
     primaryKey: true,
+    autoIncrement: true,
     unique: true,
    },
    nif_nipc: {
