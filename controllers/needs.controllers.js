@@ -1,83 +1,18 @@
-import { Needs, NeedItem, GoodsServices } from "../models/db.config.js";
-import { genericError, notFoundError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
-
-const needRequiredFields = ["estado", "items"];
-
-const getMissingFields = (body, requiredFields) =>
-  requiredFields.filter((field) => body[field] === undefined || body[field] === null);
-
-const validateNeedItems = async (items) => {
-  if (!Array.isArray(items) || items.length === 0) {
-    return validationError([{ items: "items must be a non-empty array" }]);
-  }
-
-  const missingItemFields = [];
-  const tipoBemServicoSet = new Set();
-
-  items.forEach((item, index) => {
-    if (item.tipo_bem_servico === undefined || item.tipo_bem_servico === null) {
-      missingItemFields.push(`items[${index}].tipo_bem_servico`);
-    }
-    if (item.publico === undefined || item.publico === null) {
-      missingItemFields.push(`items[${index}].publico`);
-    }
-    if (item.tipo_bem_servico) {
-      tipoBemServicoSet.add(item.tipo_bem_servico);
-    }
-  });
-
-  if (missingItemFields.length) {
-    return missingFieldError(missingItemFields);
-  }
-
-  const tipos = Array.from(tipoBemServicoSet);
-  const goodsServices = await GoodsServices.findAll({
-    where: { tipo_bem_servico: tipos },
-  });
-
-  const existingTipos = new Set(goodsServices.map((service) => service.tipo_bem_servico));
-  const invalidTipos = tipos.filter((tipo) => !existingTipos.has(tipo));
-
-  if (invalidTipos.length) {
-    return validationError([
-      {
-        tipo_bem_servico: `Goods services not found: ${invalidTipos.join(", ")}`,
-      },
-    ]);
-  }
-
-  return { valid: true };
-};
-
-const buildNeedItems = (items, id_pedido) =>
-  items.map((item) => ({
-    id_pedido,
-    tipo_bem_servico: item.tipo_bem_servico,
-    publico: item.publico,
-  }));
+import { Needs, NeedItem } from "../models/db.config.js";
+import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
+import { buildNeedItems } from "../utils/need.utils.js";
 
 export const createNeed = async (req, res, next) => {
   const { nif_nipc, estado, items } = req.body;
-  const missingFields = getMissingFields(req.body, ["nif_nipc", ...needRequiredFields]);
-
-  if (missingFields.length) {
-    return next(missingFieldError(missingFields));
-  }
 
   try {
-    const validation = await validateNeedItems(items);
-    if (validation.status === 400 || validation.errors) {
-      return next(validation);
-    }
-
     const transaction = await Needs.sequelize.transaction();
 
     try {
       const need = await Needs.create({ nif_nipc, estado }, { transaction });
-      const createdItems = await NeedItem.bulkCreate(
-        buildNeedItems(items, need.id_pedido),
-        { transaction }
-      );
+      const createdItems = await NeedItem.bulkCreate(buildNeedItems(items, need.id_pedido), {
+        transaction,
+      });
       await transaction.commit();
       res.status(201).json({ need, items: createdItems });
     } catch (error) {
@@ -87,8 +22,6 @@ export const createNeed = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
-      next(e);
     } else {
       next(genericError("Error creating need"));
     }
@@ -137,17 +70,10 @@ export const updateNeed = async (req, res, next) => {
 
       let updatedItems = [];
       if (items !== undefined) {
-        const validation = await validateNeedItems(items);
-        if (validation.status === 400 || validation.errors) {
-          await transaction.rollback();
-          return next(validation);
-        }
-
         await NeedItem.destroy({ where: { id_pedido: id_need }, transaction });
-        updatedItems = await NeedItem.bulkCreate(
-          buildNeedItems(items, id_need),
-          { transaction }
-        );
+        updatedItems = await NeedItem.bulkCreate(buildNeedItems(items, id_need), {
+          transaction,
+        });
       }
 
       await transaction.commit();
@@ -190,25 +116,14 @@ export const deleteNeed = async (req, res, next) => {
 export const createInstitutionNeed = async (req, res, next) => {
   const { nif_nipc } = req.params;
   const { estado, items } = req.body;
-  const missingFields = getMissingFields(req.body, needRequiredFields);
-
-  if (missingFields.length) {
-    return next(missingFieldError(missingFields));
-  }
 
   try {
-    const validation = await validateNeedItems(items);
-    if (validation.status === 400 || validation.errors) {
-      return next(validation);
-    }
-
     const transaction = await Needs.sequelize.transaction();
     try {
       const need = await Needs.create({ nif_nipc, estado }, { transaction });
-      const createdItems = await NeedItem.bulkCreate(
-        buildNeedItems(items, need.id_pedido),
-        { transaction }
-      );
+      const createdItems = await NeedItem.bulkCreate(buildNeedItems(items, need.id_pedido), {
+        transaction,
+      });
       await transaction.commit();
       res.status(201).json({ need, items: createdItems });
     } catch (error) {
@@ -218,8 +133,6 @@ export const createInstitutionNeed = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
-      next(e);
     } else {
       next(genericError("Error creating institution need"));
     }
@@ -270,17 +183,10 @@ export const updateInstitutionNeed = async (req, res, next) => {
 
       let updatedItems = [];
       if (items !== undefined) {
-        const validation = await validateNeedItems(items);
-        if (validation.status === 400 || validation.errors) {
-          await transaction.rollback();
-          return next(validation);
-        }
-
         await NeedItem.destroy({ where: { id_pedido: id_need }, transaction });
-        updatedItems = await NeedItem.bulkCreate(
-          buildNeedItems(items, id_need),
-          { transaction }
-        );
+        updatedItems = await NeedItem.bulkCreate(buildNeedItems(items, id_need), {
+          transaction,
+        });
       }
 
       await transaction.commit();

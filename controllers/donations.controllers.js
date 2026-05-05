@@ -1,32 +1,9 @@
 import { Donations, FinancialLogs } from "../models/db.config.js";
-import { genericError, notFoundError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
-
-const donationRequiredFields = [
-  "mecena_nif_nipc",
-  "data",
-  "valor_transacao",
-  "tipo_donativo",
-  "anonimo",
-  "url_comprovativo",
-  "estado",
-];
-
-const getMissingFields = (body, requiredFields) =>
-  requiredFields.filter((field) => body[field] === undefined || body[field] === null);
-
-const buildFinancialLogData = (financial_log, donation) => ({
-  ...financial_log,
-  id_doacao: donation.id_doacao,
-  mecena_nif_nipc: donation.mecena_nif_nipc,
-});
+import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
+import { buildFinancialLogData } from "../utils/donation.utils.js";
 
 export const createDonation = async (req, res, next) => {
   const { financial_log, ...donationData } = req.body;
-  const missingFields = getMissingFields(donationData, donationRequiredFields);
-
-  if (missingFields.length) {
-    return next(missingFieldError(missingFields));
-  }
 
   try {
     const donation = await Donations.create(donationData);
@@ -108,15 +85,6 @@ export const deleteDonation = async (req, res, next) => {
 export const createPatronDonation = async (req, res, next) => {
   const { nif_nipc } = req.params;
   const { financial_log, ...donationData } = req.body;
-  const missingFields = getMissingFields(donationData, donationRequiredFields);
-
-  if (missingFields.length) {
-    return next(missingFieldError(missingFields));
-  }
-
-  if (donationData.mecena_nif_nipc && donationData.mecena_nif_nipc !== nif_nipc) {
-    return next(validationError([{ mecena_nif_nipc: "Route patron and request patron must match" }]));
-  }
 
   try {
     const donation = await Donations.create({ ...donationData, mecena_nif_nipc: nif_nipc });

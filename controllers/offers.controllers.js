@@ -1,48 +1,15 @@
-import { Offers, GoodsServices } from "../models/db.config.js";
-import { genericError, notFoundError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
-
-const offerRequiredFields = [
-  "tipo_bem_servico",
-  "descricao",
-  "valor_total",
-  "desconto",
-];
-
-const getMissingFields = (body, requiredFields) =>
-  requiredFields.filter((field) => body[field] === undefined || body[field] === null);
-
-const validateGoodsService = async (tipo_bem_servico) => {
-  const goodsService = await GoodsServices.findByPk(tipo_bem_servico);
-  if (!goodsService) {
-    throw validationError([
-      {
-        tipo_bem_servico: `Goods service '${tipo_bem_servico}' does not exist`,
-      },
-    ]);
-  }
-  return goodsService;
-};
+import { Offers } from "../models/db.config.js";
+import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
 
 export const createOffer = async (req, res, next) => {
   const { negocio_nif_nipc, ...offerData } = req.body;
-  const missingFields = getMissingFields({ negocio_nif_nipc, ...offerData }, [
-    "negocio_nif_nipc",
-    ...offerRequiredFields,
-  ]);
-
-  if (missingFields.length) {
-    return next(missingFieldError(missingFields));
-  }
 
   try {
-    await validateGoodsService(offerData.tipo_bem_servico);
     const offer = await Offers.create({ negocio_nif_nipc, ...offerData });
     res.status(201).json({ offer });
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
-      next(e);
     } else {
       next(genericError("Error creating offer"));
     }
@@ -72,24 +39,17 @@ export const getAllOffers = async (req, res, next) => {
 
 export const updateOffer = async (req, res, next) => {
   const { id_offer } = req.params;
-  const { tipo_bem_servico, ...updateData } = req.body;
+  const updateData = req.body;
 
   try {
     const offer = await Offers.findByPk(id_offer);
     if (!offer) return next(notFoundError("Offer", id_offer));
-
-    if (tipo_bem_servico) {
-      await validateGoodsService(tipo_bem_servico);
-      updateData.tipo_bem_servico = tipo_bem_servico;
-    }
 
     await offer.update(updateData);
     res.json({ offer });
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
-      next(e);
     } else {
       next(genericError("Error updating offer"));
     }
@@ -113,21 +73,13 @@ export const deleteOffer = async (req, res, next) => {
 export const createBusinessOffer = async (req, res, next) => {
   const { nif_nipc } = req.params;
   const offerData = req.body;
-  const missingFields = getMissingFields(offerData, offerRequiredFields);
-
-  if (missingFields.length) {
-    return next(missingFieldError(missingFields));
-  }
 
   try {
-    await validateGoodsService(offerData.tipo_bem_servico);
     const offer = await Offers.create({ negocio_nif_nipc: nif_nipc, ...offerData });
     res.status(201).json({ offer });
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
-      next(e);
     } else {
       next(genericError("Error creating business offer"));
     }
@@ -162,7 +114,7 @@ export const getAllBusinessOffers = async (req, res, next) => {
 
 export const updateBusinessOffer = async (req, res, next) => {
   const { id_offer, nif_nipc } = req.params;
-  const { tipo_bem_servico, ...updateData } = req.body;
+  const updateData = req.body;
 
   try {
     const offer = await Offers.findOne({
@@ -171,18 +123,11 @@ export const updateBusinessOffer = async (req, res, next) => {
 
     if (!offer) return next(notFoundError("Offer", id_offer));
 
-    if (tipo_bem_servico) {
-      await validateGoodsService(tipo_bem_servico);
-      updateData.tipo_bem_servico = tipo_bem_servico;
-    }
-
     await offer.update(updateData);
     res.json({ offer });
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
-      next(e);
     } else {
       next(genericError("Error updating business offer"));
     }
