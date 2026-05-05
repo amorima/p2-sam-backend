@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import "dotenv/config";
 
 const app = express();
@@ -6,6 +7,7 @@ const app = express();
 const PORT = process.env.PORT;
 const HOST = process.env.HOST;
 
+app.use(cors({origin: ['http://localhost:3012', 'https://sam.netdw.tech']}));
 app.use(express.json());
 
 // Resources Routes Import
