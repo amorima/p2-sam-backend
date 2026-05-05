@@ -1,15 +1,16 @@
 import express from "express";
 
 import * as needsController from "../controllers/needs.controllers.js";
+import { validateNeedCreate, validateNeedUpdate } from "../middleware/needs.middleware.js";
 
 const router = express.Router();
 
 router.route('/')
     .get(needsController.getAllNeeds)
-    .post(needsController.createNeed)
+    .post(validateNeedCreate, needsController.createNeed)
 router.route('/:id_need')
     .get(needsController.getNeed)
-    .patch(needsController.updateNeed)
+    .patch(validateNeedUpdate, needsController.updateNeed)
     .delete(needsController.deleteNeed)
 
 export default router;

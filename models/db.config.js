@@ -197,7 +197,7 @@ Lockers.hasMany(Leads, {
 
 // Sycronizing
 try{
-    await sequelize.sync({alter: true})
+    await sequelize.sync({force: true})
     console.log("All models were synced")
 } catch(e) {
     console.error("Error synching the models", e)

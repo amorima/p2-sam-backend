@@ -2,6 +2,7 @@ import express from "express";
 
 import * as patronsController from "../controllers/patrons.controllers.js";
 import { createPatronDonation, getAllPatronDonation, getPatronDonation, updatePatronDonation, deletePatronDonation} from "../controllers/donations.controllers.js";
+import { validatePatronDonationCreate } from "../middleware/donations.middleware.js";
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.route('/:nif_nipc')
     .delete(patronsController.deletePatron)
 router.route('/:nif_nipc/donations')
     .get(getAllPatronDonation)
-    .post(createPatronDonation)
+    .post(validatePatronDonationCreate, createPatronDonation)
 router.route('/:nif_nipc/donations/:id_donation')
     .get(getPatronDonation)
     .patch(updatePatronDonation)

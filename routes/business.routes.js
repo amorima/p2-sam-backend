@@ -2,6 +2,10 @@ import express from "express";
 
 import * as businessController from "../controllers/business.controllers.js";
 import { getBusinessOffer, getAllBusinessOffers, createBusinessOffer, updateBusinessOffer, deleteBusinessOffer } from "../controllers/offers.controllers.js";
+import {
+  validateBusinessOfferCreate,
+  validateOfferUpdate,
+} from "../middleware/offers.middleware.js";
 
 const router = express.Router();
 
@@ -14,10 +18,10 @@ router.route('/:nif_nipc')
     .delete(businessController.deleteBusiness)
 router.route('/:nif_nipc/offers')
     .get(getAllBusinessOffers)
-    .post(createBusinessOffer)
+    .post(validateBusinessOfferCreate, createBusinessOffer)
 router.route('/:nif_nipc/offers/:id_offer')
     .get(getBusinessOffer)
-    .patch(updateBusinessOffer)
+    .patch(validateOfferUpdate, updateBusinessOffer)
     .delete(deleteBusinessOffer)
 
 export default router;

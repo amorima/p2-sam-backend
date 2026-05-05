@@ -1,17 +1,21 @@
 export default (sequelize, DataTypes) => sequelize.define("need item", {
+   id_item: {
+     type: DataTypes.INTEGER,
+     primaryKey: true,
+     autoIncrement: true,
+     allowNull: false,
+   },
    id_pedido: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-    allowNull: false,
+     type: DataTypes.INTEGER,
+     allowNull: false,
    },
    tipo_bem_servico: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
+     type: DataTypes.STRING(100),
+     allowNull: false,
    },
    publico: {
-    type: DataTypes.TINYINT,
-    allowNull: false,
+     type: DataTypes.TINYINT,
+     allowNull: false,
    },
   },
   {
