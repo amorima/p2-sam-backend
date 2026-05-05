@@ -1,6 +1,6 @@
 import { Institutions, Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
-import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entityHelper.utils.js";
+import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
 
 export const createInstitution = async (req, res, next) => {
   const { location, entity, contacts, institution } = req.body;

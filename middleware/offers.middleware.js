@@ -1,24 +1,5 @@
-import { GoodsServices } from "../models/db.config.js";
-import { genericError, missingFieldError, validationError } from "../utils/error.utils.js";
-import { getMissingFields } from "../utils/requestValidation.utils.js";
-
-const offerRequiredFields = [
-  "tipo_bem_servico",
-  "descricao",
-  "valor_total",
-  "desconto",
-];
-
-const validateGoodsService = async (tipo_bem_servico) => {
-  const goodsService = await GoodsServices.findByPk(tipo_bem_servico);
-  if (!goodsService) {
-    throw validationError([
-      {
-        tipo_bem_servico: `Goods service '${tipo_bem_servico}' does not exist`,
-      },
-    ]);
-  }
-};
+import { genericError, missingFieldError } from "../utils/error.utils.js";
+import { offerRequiredFields, getMissingFields, validateGoodsService } from "../utils/offer.utils.js";
 
 export const validateOfferCreate = async (req, res, next) => {
   const missingFields = getMissingFields(req.body, ["negocio_nif_nipc", ...offerRequiredFields]);
