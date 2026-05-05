@@ -44,13 +44,21 @@ export const deleteCitizen = async (req, res, next) => {
     const citizen = await Citizens.findOne({ where: { contacto } });
     if (!citizen) return next(notFoundError("Citizen", contacto));
 
-    await Leads.update(
-      { contacto_cidadao: null },
-      { where: { contacto_cidadao: contacto } }
-    );
+    const transaction = await Citizens.sequelize.transaction();
 
-    await citizen.destroy();
-    res.status(204).send();
+    try {
+      await Leads.update(
+        { contacto_cidadao: null },
+        { where: { contacto_cidadao: contacto }, transaction }
+      );
+
+      await citizen.destroy({ transaction });
+      await transaction.commit();
+      res.status(204).send();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   } catch (e) {
     next(genericError("Error deleting citizen"));
   }

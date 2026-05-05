@@ -17,49 +17,72 @@ export const createLead = async (req, res, next) => {
     return next(missingFieldError(missingFields));
   }
 
+  const transaction = await Leads.sequelize.transaction();
+
   try {
     const panel = await Panels.findByPk(id_painel);
-    if (!panel) return next(notFoundError("Panel", id_painel));
+    if (!panel) {
+      await transaction.rollback();
+      return next(notFoundError("Panel", id_painel));
+    }
 
-    let citizen = await Citizens.findOne({ where: { contacto: contacto_cidadao } });
+    let citizen = await Citizens.findOne({ where: { contacto: contacto_cidadao }, transaction });
     if (!citizen) {
       if (rgpd === undefined || rgpd === null) {
+        await transaction.rollback();
         return next(missingFieldError(["rgpd"]));
       }
-      citizen = await Citizens.create({ nome: nome_cidadao, contacto: contacto_cidadao, rgpd, suspense: 0 });
+      citizen = await Citizens.create(
+        { nome: nome_cidadao, contacto: contacto_cidadao, rgpd, suspense: 0 },
+        { transaction }
+      );
     }
 
     if (citizen.suspense) {
+      await transaction.rollback();
       return next(conflictError([{ contacto_cidadao: "Citizen is suspended and cannot participate in leads" }]));
     }
 
     const needItem = await NeedItem.findByPk(id_item);
-    if (!needItem) return next(notFoundError("NeedItem", id_item));
+    if (!needItem) {
+      await transaction.rollback();
+      return next(notFoundError("NeedItem", id_item));
+    }
     if (needItem.id_pedido !== id_pedido) {
+      await transaction.rollback();
       return next(validationError([{ id_item: "Item does not belong to provided pedido" }]));
     }
 
-    const existingLead = await Leads.findOne({ where: { id_item } });
+    const existingLead = await Leads.findOne({ where: { id_item }, transaction });
     if (existingLead) {
+      await transaction.rollback();
       return next(conflictError([{ id_item: "A lead already exists for this item" }]));
     }
 
     const locker = await Lockers.findByPk(id_locker);
-    if (!locker) return next(notFoundError("Locker", id_locker));
+    if (!locker) {
+      await transaction.rollback();
+      return next(notFoundError("Locker", id_locker));
+    }
 
-    const lead = await Leads.create({
-      id_painel,
-      nome_cidadao,
-      contacto_cidadao,
-      id_pedido,
-      id_item,
-      item_pedido: needItem.tipo_bem_servico,
-      pin_entrega,
-      id_locker,
-    });
+    const lead = await Leads.create(
+      {
+        id_painel,
+        nome_cidadao,
+        contacto_cidadao,
+        id_pedido,
+        id_item,
+        item_pedido: needItem.tipo_bem_servico,
+        pin_entrega,
+        id_locker,
+      },
+      { transaction }
+    );
 
+    await transaction.commit();
     res.status(201).json(lead);
   } catch (e) {
+    await transaction.rollback();
     next(genericError("Error creating lead"));
   }
 };
