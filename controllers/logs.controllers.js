@@ -1,6 +1,6 @@
 import { FinancialLogs, InteractionLogs } from "../models/db.config.js";
 import { genericError, notFoundError } from "../utils/error.utils.js";
-
+//
 export const getFinancialLog = async (req, res, next) => {
   const { id } = req.params;
 
