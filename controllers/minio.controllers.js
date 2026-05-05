@@ -27,3 +27,35 @@ export const getPresignedUploadUrl = async (req, res, next) => {
     next(erro);
   }
 };
+
+export const uploadFile = async (req, res, next) => {
+  const bucket = req.params.bucket;
+  const nomeFicheiro = req.query.nome;
+
+  if (!nomeFicheiro) {
+    return res.status(400).json({ erro: "Falta o nome do ficheiro" });
+  }
+
+  if (bucket !== "avatar" && bucket !== "files") {
+    return res.status(400).json({ erro: "Bucket não autorizado" });
+  }
+
+  try {
+    // Upload the raw body to MinIO
+    const buffer = req.body;
+    await minioClient.putObject(bucket, nomeFicheiro, buffer);
+
+    // Construct public URL using the public MinIO endpoint
+    const publicBaseUrl = process.env.MINIO_PUBLIC_URL || `http://localhost:9000`;
+    const publicUrl = `${publicBaseUrl.replace(/\/+$/, "")}/${bucket}/${nomeFicheiro}`;
+
+    res.json({ 
+      success: true, 
+      url: publicUrl,
+      fileName: nomeFicheiro,
+      bucket: bucket
+    });
+  } catch (erro) {
+    next(erro);
+  }
+};
