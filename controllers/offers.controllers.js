@@ -1,15 +1,30 @@
 import { Offers } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
+import { ensureGoodsService } from "../utils/offer.utils.js";
 
 export const createOffer = async (req, res, next) => {
-  const { negocio_nif_nipc, ...offerData } = req.body;
+  const { negocio_nif_nipc, tipo_bem, ...offerData } = req.body;
+  const transaction = await Offers.sequelize.transaction();
 
   try {
-    const offer = await Offers.create({ negocio_nif_nipc, ...offerData });
+    await ensureGoodsService(
+      { tipo_bem_servico: req.body.tipo_bem_servico, tipo_bem },
+      transaction
+    );
+
+    const offer = await Offers.create(
+      { negocio_nif_nipc, ...offerData },
+      { transaction }
+    );
+
+    await transaction.commit();
     res.status(201).json({ offer });
   } catch (e) {
+    await transaction.rollback();
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.status === 400) {
+      next(e);
     } else {
       next(genericError("Error creating offer"));
     }
@@ -39,17 +54,36 @@ export const getAllOffers = async (req, res, next) => {
 
 export const updateOffer = async (req, res, next) => {
   const { id_offer } = req.params;
-  const updateData = req.body;
+  const { tipo_bem, ...updateData } = req.body;
 
   try {
     const offer = await Offers.findByPk(id_offer);
     if (!offer) return next(notFoundError("Offer", id_offer));
 
-    await offer.update(updateData);
-    res.json({ offer });
+    const transaction = await Offers.sequelize.transaction();
+    try {
+      const tipoBemServico =
+        updateData.tipo_bem_servico ?? offer.tipo_bem_servico;
+
+      if (updateData.tipo_bem_servico !== undefined || tipo_bem !== undefined) {
+        await ensureGoodsService(
+          { tipo_bem_servico: tipoBemServico, tipo_bem },
+          transaction
+        );
+      }
+
+      await offer.update(updateData, { transaction });
+      await transaction.commit();
+      res.json({ offer });
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.status === 400) {
+      next(e);
     } else {
       next(genericError("Error updating offer"));
     }
@@ -72,14 +106,28 @@ export const deleteOffer = async (req, res, next) => {
 
 export const createBusinessOffer = async (req, res, next) => {
   const { nif_nipc } = req.params;
-  const offerData = req.body;
+  const { tipo_bem, ...offerData } = req.body;
+  const transaction = await Offers.sequelize.transaction();
 
   try {
-    const offer = await Offers.create({ negocio_nif_nipc: nif_nipc, ...offerData });
+    await ensureGoodsService(
+      { tipo_bem_servico: req.body.tipo_bem_servico, tipo_bem },
+      transaction
+    );
+
+    const offer = await Offers.create(
+      { negocio_nif_nipc: nif_nipc, ...offerData },
+      { transaction }
+    );
+
+    await transaction.commit();
     res.status(201).json({ offer });
   } catch (e) {
+    await transaction.rollback();
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.status === 400) {
+      next(e);
     } else {
       next(genericError("Error creating business offer"));
     }
@@ -114,7 +162,7 @@ export const getAllBusinessOffers = async (req, res, next) => {
 
 export const updateBusinessOffer = async (req, res, next) => {
   const { id_offer, nif_nipc } = req.params;
-  const updateData = req.body;
+  const { tipo_bem, ...updateData } = req.body;
 
   try {
     const offer = await Offers.findOne({
@@ -123,11 +171,30 @@ export const updateBusinessOffer = async (req, res, next) => {
 
     if (!offer) return next(notFoundError("Offer", id_offer));
 
-    await offer.update(updateData);
-    res.json({ offer });
+    const transaction = await Offers.sequelize.transaction();
+    try {
+      const tipoBemServico =
+        updateData.tipo_bem_servico ?? offer.tipo_bem_servico;
+
+      if (updateData.tipo_bem_servico !== undefined || tipo_bem !== undefined) {
+        await ensureGoodsService(
+          { tipo_bem_servico: tipoBemServico, tipo_bem },
+          transaction
+        );
+      }
+
+      await offer.update(updateData, { transaction });
+      await transaction.commit();
+      res.json({ offer });
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.status === 400) {
+      next(e);
     } else {
       next(genericError("Error updating business offer"));
     }
