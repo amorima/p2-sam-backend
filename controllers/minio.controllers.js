@@ -40,11 +40,15 @@ export const uploadFile = async (req, res, next) => {
     return res.status(400).json({ erro: "Bucket não autorizado" });
   }
 
+
   try {
     // Upload the raw body to MinIO
     const buffer = req.body;
-    await minioClient.putObject(bucket, nomeFicheiro, buffer);
-
+    const contentType =
+    req.headers["content-type"] || "application/octet-stream";
+    await minioClient.putObject(bucket, nomeFicheiro, buffer, {
+      "Content-Type": contentType,
+    });
     // Construct public URL using the public MinIO endpoint
     const publicBaseUrl = process.env.MINIO_PUBLIC_URL || `http://localhost:9000`;
     const publicUrl = `${publicBaseUrl.replace(/\/+$/, "")}/${bucket}/${nomeFicheiro}`;

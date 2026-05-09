@@ -20,10 +20,6 @@ export default (sequelize, DataTypes) => sequelize.define("locker",{
     type: DataTypes.DECIMAL(11, 8),
     allowNull: false,
    },
-   codigo_mestre: {
-    type: DataTypes.STRING(45),
-    allowNull: false,
-   },
   },
   {
    tableName: "locker_inteligente",

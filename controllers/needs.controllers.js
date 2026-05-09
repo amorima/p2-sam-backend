@@ -1,6 +1,9 @@
 import { Needs, NeedItem } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
-import { buildNeedItems } from "../utils/need.utils.js";
+import {
+  buildNeedItems,
+  ensureGoodsServicesForItems,
+} from "../utils/need.utils.js";
 
 export const createNeed = async (req, res, next) => {
   const { nif_nipc, estado, items } = req.body;
@@ -9,6 +12,7 @@ export const createNeed = async (req, res, next) => {
     const transaction = await Needs.sequelize.transaction();
 
     try {
+      await ensureGoodsServicesForItems(items, transaction);
       const need = await Needs.create({ nif_nipc, estado }, { transaction });
       const createdItems = await NeedItem.bulkCreate(buildNeedItems(items, need.id_pedido), {
         transaction,
@@ -70,6 +74,7 @@ export const updateNeed = async (req, res, next) => {
 
       let updatedItems = [];
       if (items !== undefined) {
+        await ensureGoodsServicesForItems(items, transaction);
         await NeedItem.destroy({ where: { id_pedido: id_need }, transaction });
         updatedItems = await NeedItem.bulkCreate(buildNeedItems(items, id_need), {
           transaction,
@@ -120,6 +125,7 @@ export const createInstitutionNeed = async (req, res, next) => {
   try {
     const transaction = await Needs.sequelize.transaction();
     try {
+      await ensureGoodsServicesForItems(items, transaction);
       const need = await Needs.create({ nif_nipc, estado }, { transaction });
       const createdItems = await NeedItem.bulkCreate(buildNeedItems(items, need.id_pedido), {
         transaction,
@@ -183,6 +189,7 @@ export const updateInstitutionNeed = async (req, res, next) => {
 
       let updatedItems = [];
       if (items !== undefined) {
+        await ensureGoodsServicesForItems(items, transaction);
         await NeedItem.destroy({ where: { id_pedido: id_need }, transaction });
         updatedItems = await NeedItem.bulkCreate(buildNeedItems(items, id_need), {
           transaction,

@@ -2,10 +2,7 @@ import express from "express";
 
 import * as businessController from "../controllers/business.controllers.js";
 import { getBusinessOffer, getAllBusinessOffers, createBusinessOffer, updateBusinessOffer, deleteBusinessOffer } from "../controllers/offers.controllers.js";
-import {
-  validateBusinessOfferCreate,
-  validateOfferUpdate,
-} from "../middleware/offers.middleware.js";
+import { validateBusinessOfferCreate } from "../middleware/offers.middleware.js";
 
 const router = express.Router();
 
@@ -21,7 +18,7 @@ router.route('/:nif_nipc/offers')
     .post(validateBusinessOfferCreate, createBusinessOffer)
 router.route('/:nif_nipc/offers/:id_offer')
     .get(getBusinessOffer)
-    .patch(validateOfferUpdate, updateBusinessOffer)
+    .patch(updateBusinessOffer)
     .delete(deleteBusinessOffer)
 
 export default router;

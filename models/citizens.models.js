@@ -12,6 +12,11 @@ export default (sequelize, DataTypes) => sequelize.define("Citizen", {
       type: DataTypes.TINYINT,
       allowNull: false,
    },
+   suspense: {
+      type: DataTypes.TINYINT,
+      allowNull: false,
+      defaultValue: 0,
+   },
    },
    {
       tableName: "Cidadao",

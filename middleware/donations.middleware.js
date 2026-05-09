@@ -11,8 +11,3 @@ export const validatePatronDonationCreate = (req, res, next) => {
   if (validation) return next(validation);
   next();
 };
-
-export const validateDonationUpdate = (req, res, next) => {
-  next();
-};
-

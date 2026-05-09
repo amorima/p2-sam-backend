@@ -19,6 +19,7 @@ import needsRoutes from "./routes/needs.routes.js";
 import offersRoutes from "./routes/offers.routes.js";
 import patronsRoutes from "./routes/patrons.routes.js";
 import minioRoutes from "./routes/minio.routes.js";
+import citizensRoutes from "./routes/citizens.routes.js";
 
 import vouchersRoutes from "./routes/vouchers.routes.js";
 import notificationsRoutes from "./routes/notifications.routes.js";
@@ -33,6 +34,7 @@ app.use('/institutions', institutionsRoutes);
 app.use('/needs', needsRoutes);
 app.use('/offers', offersRoutes);
 app.use('/patrons', patronsRoutes);
+app.use('/citizens', citizensRoutes);
 
 app.use('/vouchers', vouchersRoutes);
 app.use('/notifications', notificationsRoutes);

@@ -7,6 +7,7 @@ export default (sequelize, DataTypes) => sequelize.define("lead",{
   data: {
     type: DataTypes.DATE,
     allowNull: false,
+    defaultValue: DataTypes.NOW,
   },
   id_painel: {
     type: DataTypes.INTEGER,
@@ -18,19 +19,24 @@ export default (sequelize, DataTypes) => sequelize.define("lead",{
   },
   contacto_cidadao: {
     type: DataTypes.STRING(13),
-    allowNull: false,
+    allowNull: true,
   },
   id_pedido: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  id_item: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
   item_pedido: {
     type: DataTypes.STRING(100),
-    allowNull: false,
+    allowNull: true,
   },
   estado: {
     type: DataTypes.ENUM("ENTREGUE", "PENDENTE", "EXPIRADO"),
     allowNull: false,
+    defaultValue: "PENDENTE",
   },
   pin_entrega: {
     type: DataTypes.STRING(16),

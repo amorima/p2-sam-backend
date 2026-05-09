@@ -19,7 +19,6 @@ export const validateNeedItems = async (items) => {
   }
 
   const missingItemFields = [];
-  const tipoBemServicoSet = new Set();
 
   items.forEach((item, index) => {
     if (item.tipo_bem_servico === undefined || item.tipo_bem_servico === null) {
@@ -28,32 +27,97 @@ export const validateNeedItems = async (items) => {
     if (item.publico === undefined || item.publico === null) {
       missingItemFields.push(`items[${index}].publico`);
     }
-    if (item.tipo_bem_servico) {
-      tipoBemServicoSet.add(item.tipo_bem_servico);
-    }
   });
 
   if (missingItemFields.length) {
     return missingFieldError(missingItemFields);
   }
 
-  const tipos = Array.from(tipoBemServicoSet);
-  const goodsServices = await GoodsServices.findAll({
-    where: { tipo_bem_servico: tipos },
-  });
+  return null;
+};
 
-  const existingTipos = new Set(goodsServices.map((service) => service.tipo_bem_servico));
-  const invalidTipos = tipos.filter((tipo) => !existingTipos.has(tipo));
-
-  if (invalidTipos.length) {
-    return validationError([
-      {
-        tipo_bem_servico: `Goods services not found: ${invalidTipos.join(", ")}`,
-      },
-    ]);
+export const ensureGoodsServicesForItems = async (items, transaction) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return;
   }
 
-  return null;
+  const tipoBemServicoMap = new Map();
+  const tipos = [];
+
+  items.forEach((item, index) => {
+    const tipoBemServico = item.tipo_bem_servico;
+    const tipoBem = item.tipo_bem;
+
+    if (tipoBemServico === undefined || tipoBemServico === null) {
+      return;
+    }
+
+    if (!tipos.includes(tipoBemServico)) {
+      tipos.push(tipoBemServico);
+    }
+
+    if (tipoBem !== undefined) {
+      if (
+        tipoBemServicoMap.has(tipoBemServico) &&
+        tipoBemServicoMap.get(tipoBemServico) !== tipoBem
+      ) {
+        throw validationError([
+          {
+            tipo_bem: `Conflicting tipo_bem values provided for '${tipoBemServico}'`,
+          },
+        ]);
+      }
+      tipoBemServicoMap.set(tipoBemServico, tipoBem);
+    } else if (!tipoBemServicoMap.has(tipoBemServico)) {
+      tipoBemServicoMap.set(tipoBemServico, undefined);
+    }
+  });
+
+  const existingGoodsServices = await GoodsServices.findAll({
+    where: { tipo_bem_servico: tipos },
+    transaction,
+  });
+
+  const existingTipoSet = new Set(
+    existingGoodsServices.map((service) => service.tipo_bem_servico)
+  );
+
+  for (const service of existingGoodsServices) {
+    const providedTipoBem = tipoBemServicoMap.get(service.tipo_bem_servico);
+    if (
+      providedTipoBem !== undefined &&
+      providedTipoBem !== service.tipo_bem
+    ) {
+      throw validationError([
+        {
+          tipo_bem: `Goods service '${service.tipo_bem_servico}' already exists as '${service.tipo_bem}'`,
+        },
+      ]);
+    }
+  }
+
+  const missingEntries = [];
+
+  tipos.forEach((tipoBemServico) => {
+    if (!existingTipoSet.has(tipoBemServico)) {
+      const tipoBem = tipoBemServicoMap.get(tipoBemServico);
+      if (!tipoBem) {
+        throw validationError([
+          {
+            tipo_bem: `tipo_bem is required for new goods service '${tipoBemServico}'`,
+          },
+        ]);
+      }
+      missingEntries.push({ tipo_bem_servico: tipoBemServico, tipo_bem: tipoBem });
+    }
+  });
+
+  if (missingEntries.length) {
+    await GoodsServices.bulkCreate(missingEntries, {
+      transaction,
+      ignoreDuplicates: true,
+    });
+  }
 };
 
 export const validateNeedCreatePayload = async (body) => {

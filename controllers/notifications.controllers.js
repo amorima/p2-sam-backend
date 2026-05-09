@@ -1,14 +1,32 @@
-import {} from "../models/db.config.js";
-import {} from "../utils/error.utils.js";
+import { Notifications } from "../models/db.config.js";
+import { genericError, notFoundError } from "../utils/error.utils.js";
 
-export const createNotification = async(req, res, next) => {
+export const createNotification = async (req, res, next) => {
+  try {
+    const notification = await Notifications.create(req.body);
+    res.status(201).json(notification);
+  } catch (e) {
+    next(genericError("Error creating notification"));
+  }
+};
 
-}
+export const getNotification = async (req, res, next) => {
+  const { id } = req.params;
 
-export const getNotification = async(req, res, next) => {
+  try {
+    const notification = await Notifications.findById(id);
+    if (!notification) return next(notFoundError("Notification", id));
+    res.json(notification);
+  } catch (e) {
+    next(genericError("Error fetching notification"));
+  }
+};
 
-}
-
-export const getAllNotification = async(req, res, next) => {
-    
-}
+export const getAllNotification = async (req, res, next) => {
+  try {
+    const notifications = await Notifications.find();
+    res.json(notifications);
+  } catch (e) {
+    next(genericError("Error fetching notifications"));
+  }
+};
