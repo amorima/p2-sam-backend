@@ -15,6 +15,12 @@ export default (sequelize, DataTypes) => sequelize.define("donation", {
    valor_transacao: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+      validate: {
+         min: {
+            args: [0],
+            msg: "valor_transacao must be greater than or equal to 0",
+         },
+      },
    },
    tipo_donativo: {
       type: DataTypes.ENUM("ESPECIE","NUMERARIO"),
@@ -23,6 +29,7 @@ export default (sequelize, DataTypes) => sequelize.define("donation", {
    anonimo: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
+      defaultValue: false,
    },
    url_comprovativo: {
       type: DataTypes.TEXT,
@@ -31,6 +38,7 @@ export default (sequelize, DataTypes) => sequelize.define("donation", {
    estado: {
       type: DataTypes.ENUM("ACEITE", "REJEITADO", "PENDENTE"),
       allowNull: false,
+      defaultValue: "PENDENTE",
    },
    },
    {

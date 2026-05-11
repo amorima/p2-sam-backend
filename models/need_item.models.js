@@ -13,9 +13,10 @@ export default (sequelize, DataTypes) => sequelize.define("need item", {
      type: DataTypes.STRING(100),
      allowNull: false,
    },
-   publico: {
-     type: DataTypes.TINYINT,
+   completed: {
+     type: DataTypes.BOOLEAN,
      allowNull: false,
+     defaultValue: false,
    },
   },
   {

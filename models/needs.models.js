@@ -12,6 +12,7 @@ export default (sequelize, DataTypes) => sequelize.define("need", {
    estado: {
     type: DataTypes.ENUM("PENDENTE", "ACEITE", "REJEITADO"),
     allowNull: false,
+    defaultValue: "PENDENTE",
    },
   },
   {

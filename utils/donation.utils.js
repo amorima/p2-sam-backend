@@ -14,9 +14,7 @@ export const donationRequiredFields = [
   "data",
   "valor_transacao",
   "tipo_donativo",
-  "anonimo",
   "url_comprovativo",
-  "estado",
 ];
 
 export const validateDonationPayload = (body) => {

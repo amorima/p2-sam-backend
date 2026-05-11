@@ -4,14 +4,20 @@ import { GoodsServices } from "../models/db.config.js";
 export const getMissingFields = (body, requiredFields) =>
   requiredFields.filter((field) => body[field] === undefined || body[field] === null);
 
-export const needRequiredFields = ["estado", "items"];
+export const needRequiredFields = ["items"];
 
 export const buildNeedItems = (items, id_pedido) =>
-  items.map((item) => ({
-    id_pedido,
-    tipo_bem_servico: item.tipo_bem_servico,
-    publico: item.publico,
-  }));
+  items.map((item) => {
+    const needItem = {
+      id_pedido,
+      tipo_bem_servico: item.tipo_bem_servico,
+    };
+    // Only include completed if explicitly provided, otherwise use default
+    if (item.completed !== undefined) {
+      needItem.completed = item.completed;
+    }
+    return needItem;
+  });
 
 export const validateNeedItems = async (items) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -23,9 +29,6 @@ export const validateNeedItems = async (items) => {
   items.forEach((item, index) => {
     if (item.tipo_bem_servico === undefined || item.tipo_bem_servico === null) {
       missingItemFields.push(`items[${index}].tipo_bem_servico`);
-    }
-    if (item.publico === undefined || item.publico === null) {
-      missingItemFields.push(`items[${index}].publico`);
     }
   });
 
