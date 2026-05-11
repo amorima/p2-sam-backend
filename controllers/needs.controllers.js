@@ -13,7 +13,11 @@ export const createNeed = async (req, res, next) => {
 
     try {
       await ensureGoodsServicesForItems(items, transaction);
-      const need = await Needs.create({ nif_nipc, estado }, { transaction });
+      
+      const needData = { nif_nipc };
+      if (estado !== undefined) needData.estado = estado;
+      
+      const need = await Needs.create(needData, { transaction });
       const createdItems = await NeedItem.bulkCreate(buildNeedItems(items, need.id_pedido), {
         transaction,
       });
@@ -126,7 +130,11 @@ export const createInstitutionNeed = async (req, res, next) => {
     const transaction = await Needs.sequelize.transaction();
     try {
       await ensureGoodsServicesForItems(items, transaction);
-      const need = await Needs.create({ nif_nipc, estado }, { transaction });
+      
+      const needData = { nif_nipc };
+      if (estado !== undefined) needData.estado = estado;
+      
+      const need = await Needs.create(needData, { transaction });
       const createdItems = await NeedItem.bulkCreate(buildNeedItems(items, need.id_pedido), {
         transaction,
       });
