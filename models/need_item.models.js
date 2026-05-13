@@ -13,10 +13,10 @@ export default (sequelize, DataTypes) => sequelize.define("need item", {
      type: DataTypes.STRING(100),
      allowNull: false,
    },
-   completed: {
-     type: DataTypes.BOOLEAN,
+   status: {
+     type: DataTypes.ENUM('available','pending','completed'),
      allowNull: false,
-     defaultValue: false,
+     defaultValue: 'available',
    },
   },
   {
