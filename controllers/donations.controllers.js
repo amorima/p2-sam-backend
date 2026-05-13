@@ -3,9 +3,12 @@ import { genericError, notFoundError, sequelizeValidationError } from "../utils/
 import { buildFinancialLogData } from "../utils/donation.utils.js";
 
 export const createDonation = async (req, res, next) => {
-  const { financial_log, ...donationData } = req.body;
+  const { financial_log, anonimo, estado, ...donationData } = req.body;
 
   try {
+    if (anonimo !== undefined) donationData.anonimo = anonimo;
+    if (estado !== undefined) donationData.estado = estado;
+
     const donation = await Donations.create(donationData);
 
     if (financial_log) {
@@ -84,10 +87,15 @@ export const deleteDonation = async (req, res, next) => {
 
 export const createPatronDonation = async (req, res, next) => {
   const { nif_nipc } = req.params;
-  const { financial_log, ...donationData } = req.body;
+  const { financial_log, anonimo, estado, ...donationData } = req.body;
 
   try {
-    const donation = await Donations.create({ ...donationData, mecena_nif_nipc: nif_nipc });
+    // Only include anonimo and estado if explicitly provided
+    donationData.mecena_nif_nipc = nif_nipc;
+    if (anonimo !== undefined) donationData.anonimo = anonimo;
+    if (estado !== undefined) donationData.estado = estado;
+
+    const donation = await Donations.create(donationData);
 
     if (financial_log) {
       try {

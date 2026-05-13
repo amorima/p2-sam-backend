@@ -1,4 +1,4 @@
-import { Offers } from "../models/db.config.js";
+import { Offers, Business } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
 import { ensureGoodsService } from "../utils/offer.utils.js";
 
@@ -115,6 +115,12 @@ export const createBusinessOffer = async (req, res, next) => {
       transaction
     );
 
+    const business = await Business.findByPk(nif_nipc, { transaction });
+    if (!business) {
+      await transaction.rollback();
+      return next(notFoundError("Business", nif_nipc));
+    }
+    
     const offer = await Offers.create(
       { negocio_nif_nipc: nif_nipc, ...offerData },
       { transaction }

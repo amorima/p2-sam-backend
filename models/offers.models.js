@@ -19,10 +19,29 @@ export default (sequelize, DataTypes) => sequelize.define("offer", {
    valor_total: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
+    validate: {
+      isDecimal: {
+        msg: "valor_total must be a valid decimal",
+      },
+      min: {
+        args: [0.01],
+        msg: "valor_total must be greater than 0",
+      },
+    },
    },
    desconto: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
+    validate: {
+      min: {
+        args: [0],
+        msg: "desconto must be between 0 and 100",
+      },
+      max: {
+        args: [100],
+        msg: "desconto must be between 0 and 100",
+      },
+    },
    },
   },
   {
