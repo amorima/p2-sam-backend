@@ -23,7 +23,7 @@ export default (sequelize, DataTypes) => sequelize.define("donation", {
       },
    },
    tipo_donativo: {
-      type: DataTypes.ENUM("ESPECIE","NUMERARIO"),
+      type: DataTypes.ENUM("NUMERARIO","REFERENCIA","CHEQUE","TRANSFERENCIA"),
       allowNull: false,
    },
    anonimo: {
