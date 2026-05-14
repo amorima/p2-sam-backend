@@ -18,6 +18,14 @@ export default (sequelize, DataTypes) => sequelize.define("need item", {
      allowNull: false,
      defaultValue: 'available',
    },
+   match_tipo: {
+     type: DataTypes.ENUM('VOUCHER','NEGOCIO','PAINEL'),
+     allowNull: true,
+   },
+   match_ref: {
+     type: DataTypes.STRING(100),
+     allowNull: true,
+   },
   },
   {
    tableName: "pedido_bens_e_servicos",
