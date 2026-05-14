@@ -20,7 +20,16 @@ const avatarUpload = multer({
 const genericUpload = multer({ storage: multer.memoryStorage() });
 
 router.get("/:bucket", minioController.getPresignedUploadUrl);
-router.post("/avatar", avatarUpload.single("file"), minioController.uploadFile);
-router.post("/:bucket", genericUpload.single("file"), minioController.uploadFile);
+router.post(
+  "/:bucket",
+  (req, res, next) => {
+    const middleware =
+      req.params.bucket === "avatar"
+        ? avatarUpload.single("file")
+        : genericUpload.single("file");
+    middleware(req, res, next);
+  },
+  minioController.uploadFile,
+);
 
 export default router;
