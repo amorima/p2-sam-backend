@@ -34,26 +34,22 @@ export const getPresignedUploadUrl = async (req, res, next) => {
 
 export const uploadFile = async (req, res, next) => {
   const bucket = req.params.bucket;
-  const nomeFicheiro = req.query.nome;
 
-  if (!nomeFicheiro) {
-    return res.status(400).json({ erro: "Falta o nome do ficheiro" });
+  if (!req.file) {
+    return res.status(400).json({ erro: "Falta o ficheiro" });
   }
 
   if (bucket !== "avatar" && bucket !== "files") {
     return res.status(400).json({ erro: "Bucket não autorizado" });
   }
 
+  const nomeFicheiro = req.query.nome || req.file.originalname;
+
   try {
-    // Upload the raw body to MinIO
-    const buffer = req.body;
-    const contentType =
-      req.headers["content-type"] || "application/octet-stream";
-    await minioClient.putObject(bucket, nomeFicheiro, buffer, {
-      "Content-Type": contentType,
+    await minioClient.putObject(bucket, nomeFicheiro, req.file.buffer, {
+      "Content-Type": req.file.mimetype,
     });
 
-    // Construct public URL using the public MinIO endpoint
     const publicBaseUrl =
       process.env.MINIO_PUBLIC_URL || `http://localhost:9000`;
     const publicUrl = `${publicBaseUrl.replace(/\/+$/, "")}/${bucket}/${nomeFicheiro}`;
