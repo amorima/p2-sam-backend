@@ -3,7 +3,7 @@ import express from "express";
 import * as patronsController from "../controllers/patrons.controllers.js";
 import { createPatronDonation, getAllPatronDonation, getPatronDonation, updatePatronDonation, deletePatronDonation} from "../controllers/donations.controllers.js";
 import { validatePatronDonationCreate } from "../middleware/donations.middleware.js";
-import { verifyJWT, requireRoles } from "../middleware/auth.middleware.js";
+import { verifyJWT, requireRoles, adminOrSelf } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 

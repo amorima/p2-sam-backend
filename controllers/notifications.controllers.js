@@ -14,7 +14,7 @@ export const getNotification = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const notification = await Notifications.findById(id);
+    const notification = await Notifications.findByPk(id);
     if (!notification) return next(notFoundError("Notification", id));
     res.json(notification);
   } catch (e) {
@@ -24,7 +24,7 @@ export const getNotification = async (req, res, next) => {
 
 export const getAllNotification = async (req, res, next) => {
   try {
-    const notifications = await Notifications.find();
+    const notifications = await Notifications.findAll();
     res.json(notifications);
   } catch (e) {
     next(genericError("Error fetching notifications"));

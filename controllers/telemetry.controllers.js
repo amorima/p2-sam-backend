@@ -14,7 +14,7 @@ export const getLockerTelemetry = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const telemetry = await LockersTelemetry.findById(id);
+    const telemetry = await LockersTelemetry.findByPk(id);
     if (!telemetry) return next(notFoundError("LockerTelemetry", id));
     res.json(telemetry);
   } catch (e) {
@@ -24,7 +24,7 @@ export const getLockerTelemetry = async (req, res, next) => {
 
 export const getAllLockersTelemetry = async (req, res, next) => {
   try {
-    const telemetry = await LockersTelemetry.find();
+    const telemetry = await LockersTelemetry.findAll();
     res.json(telemetry);
   } catch (e) {
     next(genericError("Error fetching locker telemetry"));
