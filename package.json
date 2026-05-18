@@ -19,9 +19,11 @@
   },
   "homepage": "https://github.com/amorima/p2-sam-backend#readme",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.1.2",
     "minio": "^8.0.7",
     "mongoose": "^9.6.1",
     "mysql2": "^3.22.3",
