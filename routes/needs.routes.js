@@ -8,10 +8,10 @@ const router = express.Router();
 
 router.route('/')
     .get(needsController.getAllNeeds)
-    .post(verifyJWT, requireRoles(['institution', 'admin']), validateNeedCreate, needsController.createNeed)
+    .post(verifyJWT, requireRoles('admin'), validateNeedCreate, needsController.createNeed)
 router.route('/:id_need')
     .get(needsController.getNeed)
-    .patch(verifyJWT, requireRoles(['institution', 'admin']), validateNeedUpdate, needsController.updateNeed)
-    .delete(verifyJWT, requireRoles(['institution', 'admin']), needsController.deleteNeed)
+    .patch(verifyJWT, requireRoles('admin'), validateNeedUpdate, needsController.updateNeed)
+    .delete(verifyJWT, requireRoles('admin'), needsController.deleteNeed)
 
 export default router;

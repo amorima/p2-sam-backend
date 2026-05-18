@@ -8,10 +8,10 @@ const router = express.Router();
 
 router.route('/')
     .get(offersController.getAllOffers)
-    .post(verifyJWT, requireRoles(['business', 'admin']), validateOfferCreate, offersController.createOffer)
+    .post(verifyJWT, requireRoles('admin'), validateOfferCreate, offersController.createOffer)
 router.route('/:id_offer')
     .get(offersController.getOffer)
-    .patch(verifyJWT, requireRoles(['business', 'admin']), offersController.updateOffer)
-    .delete(verifyJWT, requireRoles(['business', 'admin']), offersController.deleteOffer)
+    .patch(verifyJWT, requireRoles('admin'), offersController.updateOffer)
+    .delete(verifyJWT, requireRoles('admin'), offersController.deleteOffer)
 
 export default router;
