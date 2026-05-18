@@ -16,8 +16,11 @@ export const createPatron = async (req, res, next) => {
   const transaction = await Patrons.sequelize.transaction();
 
   try {
+    // Automatically set role for patron
+    const entityWithRole = { ...entity, role: 'patron' };
+
     const { entityInstance, locationInstances } = await syncEntityRelations({
-      entity,
+      entity: entityWithRole,
       locations: [location],
       contacts,
       transaction,

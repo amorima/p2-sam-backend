@@ -17,8 +17,11 @@ export const createInstitution = async (req, res, next) => {
   const transaction = await Institutions.sequelize.transaction();
 
   try {
+    // Automatically set role for institution
+    const entityWithRole = { ...entity, role: 'institution' };
+
     const { entityInstance, locationInstances } = await syncEntityRelations({
-      entity,
+      entity: entityWithRole,
       locations: [location],
       contacts,
       transaction,

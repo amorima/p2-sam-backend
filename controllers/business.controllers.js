@@ -18,8 +18,11 @@ export const createBusiness = async (req, res, next) => {
   const transaction = await Business.sequelize.transaction();
 
   try {
+    // Automatically set role for business
+    const entityWithRole = { ...entity, role: 'business' };
+
     const { entityInstance, locationInstances } = await syncEntityRelations({
-      entity,
+      entity: entityWithRole,
       locations: [location],
       contacts,
       transaction,
