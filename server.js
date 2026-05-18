@@ -11,6 +11,7 @@ app.use(cors({origin: ['http://localhost:3012', 'https://sam.netdw.tech']}));
 app.use(express.json());
 
 // Resources Routes Import
+import authRoutes from "./routes/auth.routes.js";
 import leadsRoutes from "./routes/leads.routes.js";
 import businessRoutes from "./routes/business.routes.js";
 import donationsRoutes from "./routes/donations.routes.js";
@@ -27,6 +28,7 @@ import logsRoutes from "./routes/logs.routes.js";
 import telemetryRoutes from "./routes/telemetry.routes.js"; 
 
 // Apply Router
+app.use('/auth', authRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/business', businessRoutes);
 app.use('/donations', donationsRoutes);
