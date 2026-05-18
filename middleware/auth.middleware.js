@@ -34,7 +34,3 @@ export const requireRoles = (requiredRoles) => {
     next();
   };
 };
-
-export const authenticateAndAuthorize = (requiredRoles) => {
-  return [verifyJWT, requireRoles(requiredRoles)];
-};
