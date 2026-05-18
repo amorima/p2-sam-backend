@@ -34,3 +34,31 @@ export const requireRoles = (requiredRoles) => {
     next();
   };
 };
+
+/**
+ * Middleware: Check if user is admin or the entity owner (self-entity)
+ * Only admin or the entity with matching nif_nipc can perform the action
+ */
+export const adminOrSelf = (req, res, next) => {
+  // Ensure verifyJWT was called first
+  if (!req.user) {
+    return next(unauthorizedError('User information not found in request'));
+  }
+
+  const userRole = req.user.role;
+  const userNifNipc = req.user.nif_nipc;
+  const targetNifNipc = req.params.nif_nipc;
+
+  // Allow if user is admin
+  if (userRole === 'admin') {
+    return next();
+  }
+
+  // Allow if user is the entity owner
+  if (userNifNipc === targetNifNipc) {
+    return next();
+  }
+
+  // Deny otherwise
+  return next(forbiddenError('You do not have permission to modify this resource. Only admins or the resource owner can perform this action.'));
+};
