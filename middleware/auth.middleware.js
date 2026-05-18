@@ -49,6 +49,11 @@ export const adminOrSelf = (req, res, next) => {
   const userNifNipc = req.user.nif_nipc;
   const targetNifNipc = req.params.nif_nipc;
 
+  // Validate nif_nipc format (must be 9 digits)
+  if (!/^\d{9}$/.test(targetNifNipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
   // Allow if user is admin
   if (userRole === 'admin') {
     return next();

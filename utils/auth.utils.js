@@ -4,6 +4,15 @@ import bcrypt from 'bcryptjs';
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRE = process.env.JWT_EXPIRE;
 
+// Validate required environment variables
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
+}
+
+if (!JWT_EXPIRE) {
+  throw new Error('JWT_EXPIRE environment variable is not set');
+}
+
 export const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);

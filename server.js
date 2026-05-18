@@ -54,6 +54,15 @@ app.use((req, res, next) => {
 
 // Error Handler
 app.use((err, req, res, next) => {
+    // Log error details for debugging
+    console.error(`[${new Date().toISOString()}] Error:`, {
+        message: err.message,
+        status: err.status || 500,
+        path: req.path,
+        method: req.method,
+        stack: err.stack,
+    });
+
     // Errors in JSON parcing
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
         err.message = "Invalid JSON payload";

@@ -99,11 +99,15 @@ export const updateInstitution = async (req, res, next) => {
     if (!entity) return next(notFoundError("Entity", nif_nipc));
 
     if (institutionData) {
+      // Hash password if provided
+      if (institutionData.password) {
+        institutionData.password = await hashPassword(institutionData.password);
+      }
       await institution.update(institutionData, { transaction });
     }
 
-    if (institutionData) {
-      await institution.update(institutionData, { transaction });
+    if (entityData && entityData.password) {
+      entityData.password = await hashPassword(entityData.password);
     }
 
     await syncEntityRelations({

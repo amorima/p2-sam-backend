@@ -1,5 +1,5 @@
 import { Offers, Business } from "../models/db.config.js";
-import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
 import { ensureGoodsService } from "../utils/offer.utils.js";
 
 export const createOffer = async (req, res, next) => {
@@ -107,6 +107,17 @@ export const deleteOffer = async (req, res, next) => {
 export const createBusinessOffer = async (req, res, next) => {
   const { nif_nipc } = req.params;
   const { tipo_bem, ...offerData } = req.body;
+  
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
+  // Verify user is the business owner or admin
+  if (req.user.nif_nipc !== nif_nipc && req.user.role !== 'admin') {
+    return next(forbiddenError('You do not have permission to create offers for this business'));
+  }
+
   const transaction = await Offers.sequelize.transaction();
 
   try {
@@ -147,6 +158,10 @@ export const getBusinessOffer = async (req, res, next) => {
     const offer = await Offers.findOne({
       where: { id_oferta: id_offer, negocio_nif_nipc: nif_nipc },
     });
+    // Validate nif_nipc format
+    if (!/^\d{9}$/.test(nif_nipc)) {
+      return next(unauthorizedError('Invalid entity identifier format'));
+    }
 
     if (!offer) return next(notFoundError("Offer", id_offer));
     res.json({ offer });
@@ -157,6 +172,11 @@ export const getBusinessOffer = async (req, res, next) => {
 
 export const getAllBusinessOffers = async (req, res, next) => {
   const { nif_nipc } = req.params;
+
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
 
   try {
     const offers = await Offers.findAll({ where: { negocio_nif_nipc: nif_nipc } });
@@ -169,6 +189,11 @@ export const getAllBusinessOffers = async (req, res, next) => {
 export const updateBusinessOffer = async (req, res, next) => {
   const { id_offer, nif_nipc } = req.params;
   const { tipo_bem, ...updateData } = req.body;
+
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
 
   try {
     const offer = await Offers.findOne({
@@ -209,6 +234,11 @@ export const updateBusinessOffer = async (req, res, next) => {
 
 export const deleteBusinessOffer = async (req, res, next) => {
   const { id_offer, nif_nipc } = req.params;
+
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
 
   try {
     const offer = await Offers.findOne({

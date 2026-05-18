@@ -113,7 +113,15 @@ export const updateBusiness = async (req, res, next) => {
     if (!entity) return next(notFoundError("Entity", nif_nipc));
 
     if (businessData) {
+      // Hash password if provided
+      if (businessData.password) {
+        businessData.password = await hashPassword(businessData.password);
+      }
       await business.update(businessData, { transaction });
+    }
+
+    if (entityData && entityData.password) {
+      entityData.password = await hashPassword(entityData.password);
     }
 
     await syncEntityRelations({

@@ -136,6 +136,10 @@ export const updatePatron = async (req, res, next) => {
     const entity = await patron.getEntity({ transaction });
     if (!entity) return next(notFoundError("Entity", nif_nipc));
 
+    if (entityData && entityData.password) {
+      entityData.password = await hashPassword(entityData.password);
+    }
+
     await syncEntityRelations({
       entity: entityData,
       locations,

@@ -77,6 +77,22 @@ export const changePassword = async (req, res, next) => {
       return next(validationError([{ newPassword: 'Password must be at least 8 characters long' }]));
     }
 
+    if (!/[A-Z]/.test(newPassword)) {
+      return next(validationError([{ newPassword: 'Password must contain at least one uppercase letter' }]));
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      return next(validationError([{ newPassword: 'Password must contain at least one lowercase letter' }]));
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      return next(validationError([{ newPassword: 'Password must contain at least one number' }]));
+    }
+
+    if (!/[!@#$%^&*]/.test(newPassword)) {
+      return next(validationError([{ newPassword: 'Password must contain at least one special character (!@#$%^&*)' }]));
+    }
+
     const entity = await Entities.findByPk(nif_nipc);
 
     if (!entity) {
