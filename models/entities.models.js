@@ -22,7 +22,7 @@ export default (sequelize, DataTypes) => sequelize.define("Entity", {
     allowNull: true,
   },
   iban: {
-    type: DataTypes.STRING(34),
+    type: DataTypes.STRING(23),
     allowNull: true,
     unique: true,
   },
