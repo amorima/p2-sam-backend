@@ -12,7 +12,7 @@ export default (sequelize, DataTypes) => sequelize.define("Citizen", {
       type: DataTypes.TINYINT,
       allowNull: false,
    },
-   suspense: {
+   blocked: {
       type: DataTypes.TINYINT,
       allowNull: false,
       defaultValue: 0,

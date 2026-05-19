@@ -8,7 +8,7 @@ router.route("/:contacto")
   .get(citizensController.getCitizen)
   .delete(verifyJWT, requireRoles('admin'), citizensController.deleteCitizen);
 
-router.route("/:contacto/suspense")
-  .patch(verifyJWT, requireRoles('admin'),citizensController.updateCitizenSuspense);
+router.route("/:contacto/block")
+  .patch(verifyJWT, requireRoles('admin'),citizensController.updateCitizenBlocked);
 
 export default router;
