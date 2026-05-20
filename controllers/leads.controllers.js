@@ -33,12 +33,12 @@ export const createLead = async (req, res, next) => {
         return next(missingFieldError(["rgpd"]));
       }
       citizen = await Citizens.create(
-        { nome: nome_cidadao, contacto: contacto_cidadao, rgpd, suspense: 0 },
+        { nome: nome_cidadao, contacto: contacto_cidadao, rgpd, blocked: 0 },
         { transaction }
       );
     }
 
-    if (citizen.suspense) {
+    if (citizen.blocked) {
       await transaction.rollback();
       return next(conflictError([{ contacto_cidadao: "Citizen is suspended and cannot participate in leads" }]));
     }

@@ -1,5 +1,5 @@
 import { Needs, NeedItem } from "../models/db.config.js";
-import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
 import {
   buildNeedItems,
   ensureGoodsServicesForItems,
@@ -126,6 +126,16 @@ export const createInstitutionNeed = async (req, res, next) => {
   const { nif_nipc } = req.params;
   const { estado, items } = req.body;
 
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
+  // Verify user is the institution owner or admin
+  if (req.user.nif_nipc !== nif_nipc && req.user.role !== 'admin') {
+    return next(forbiddenError('You do not have permission to create needs for this institution'));
+  }
+
   try {
     const transaction = await Needs.sequelize.transaction();
     try {
@@ -156,6 +166,11 @@ export const createInstitutionNeed = async (req, res, next) => {
 export const getInstitutionNeed = async (req, res, next) => {
   const { nif_nipc, id_need } = req.params;
 
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
   try {
     const need = await Needs.findOne({
       where: { id_pedido: id_need, nif_nipc },
@@ -171,6 +186,11 @@ export const getInstitutionNeed = async (req, res, next) => {
 export const getAllInstitutionNeeds = async (req, res, next) => {
   const { nif_nipc } = req.params;
 
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
   try {
     const needs = await Needs.findAll({ where: { nif_nipc }, include: [NeedItem] });
     res.json({ needs });
@@ -183,6 +203,12 @@ export const updateInstitutionNeed = async (req, res, next) => {
   const { nif_nipc, id_need } = req.params;
   const { estado, items } = req.body;
   const updateData = {};
+  
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+  
   if (estado !== undefined) updateData.estado = estado;
 
   try {
@@ -221,6 +247,11 @@ export const updateInstitutionNeed = async (req, res, next) => {
 
 export const deleteInstitutionNeed = async (req, res, next) => {
   const { nif_nipc, id_need } = req.params;
+
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
 
   try {
     const need = await Needs.findOne({ where: { id_pedido: id_need, nif_nipc } });

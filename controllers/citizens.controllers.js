@@ -13,27 +13,32 @@ export const getCitizen = async (req, res, next) => {
   }
 };
 
-export const updateCitizenSuspense = async (req, res, next) => {
+export const updateCitizenBlocked = async (req, res, next) => {
   const { contacto } = req.params;
-  const { suspense } = req.body;
+  const { blocked, reason } = req.body;
 
-  if (suspense === undefined || suspense === null) {
-    return next(missingFieldError(["suspense"]));
+  if (blocked === undefined || blocked === null) {
+    return next(missingFieldError(["blocked"]));
   }
 
-  if (typeof suspense !== "boolean" && suspense !== 0 && suspense !== 1) {
-    return next(validationError([{ suspense: "Suspense must be true, false, 1 or 0" }]));
+  if (typeof blocked !== "boolean" && blocked !== 0 && blocked !== 1) {
+    return next(validationError([{ blocked: "blocked must be true, false, 1 or 0" }]));
+  }
+
+  if (blocked && (!reason || reason.length === 0)) {
+    return next(validationError[{ reason: "Reason must be filled for a valid suspension"}])
   }
 
   try {
     const citizen = await Citizens.findOne({ where: { contacto } });
     if (!citizen) return next(notFoundError("Citizen", contacto));
 
-    citizen.suspense = Number(Boolean(suspense));
+    citizen.blocked = Number(Boolean(blocked));
+    citizen.reason = reason;
     await citizen.save();
     res.json(citizen);
   } catch (e) {
-    next(genericError("Error updating citizen suspense"));
+    next(genericError("Error updating citizen blocked"));
   }
 };
 

@@ -1,6 +1,7 @@
 import { Business, Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
+import { hashPassword } from "../utils/auth.utils.js";
 
 
 export const createBusiness = async (req, res, next) => {
@@ -18,8 +19,16 @@ export const createBusiness = async (req, res, next) => {
   const transaction = await Business.sequelize.transaction();
 
   try {
+    // Automatically set role for business
+    const entityWithRole = { ...entity, role: 'business' };
+    
+    // Hash password
+    if (entityWithRole.password) {
+      entityWithRole.password = await hashPassword(entityWithRole.password);
+    }
+
     const { entityInstance, locationInstances } = await syncEntityRelations({
-      entity,
+      entity: entityWithRole,
       locations: [location],
       contacts,
       transaction,
@@ -104,7 +113,15 @@ export const updateBusiness = async (req, res, next) => {
     if (!entity) return next(notFoundError("Entity", nif_nipc));
 
     if (businessData) {
+      // Hash password if provided
+      if (businessData.password) {
+        businessData.password = await hashPassword(businessData.password);
+      }
       await business.update(businessData, { transaction });
+    }
+
+    if (entityData && entityData.password) {
+      entityData.password = await hashPassword(entityData.password);
     }
 
     await syncEntityRelations({

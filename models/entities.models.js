@@ -10,7 +10,7 @@ export default (sequelize, DataTypes) => sequelize.define("Entity", {
     unique: true,
   },
   password: {
-    type: DataTypes.STRING(45),
+    type: DataTypes.STRING(255),
     allowNull: false,
   },
   nome_entidade: {
@@ -22,9 +22,14 @@ export default (sequelize, DataTypes) => sequelize.define("Entity", {
     allowNull: true,
   },
   iban: {
-    type: DataTypes.STRING(34),
+    type: DataTypes.STRING(23),
     allowNull: true,
     unique: true,
+  },
+  role: {
+    type: DataTypes.ENUM('patron', 'business', 'institution', 'admin'),
+    allowNull: false,
+    defaultValue: 'patron',
   },
   },
   {
