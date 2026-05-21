@@ -18,19 +18,15 @@ export default (sequelize, DataTypes) => sequelize.define("lead",{
     allowNull: false,
   },
   contacto_cidadao: {
-    type: DataTypes.STRING(13),
+    type: DataTypes.STRING(50),
     allowNull: true,
   },
   id_pedido: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  id_item: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
   item_pedido: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.STRING(50),
     allowNull: true,
   },
   estado: {

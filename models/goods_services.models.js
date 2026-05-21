@@ -4,11 +4,11 @@ export default (sequelize, DataTypes) => sequelize.define("Goods and Services",{
       primaryKey: true,
    },
    tipo_bem: {
-      type: DataTypes.ENUM("BEM", "SERVICO"),
+      type: DataTypes.ENUM("bem", "servico"),
       allowNull: false,
    },
    },
    {
-      tableName: "bens_e_servico",
+      tableName: "bens_e_servicos",
       timestamps: false,
    })

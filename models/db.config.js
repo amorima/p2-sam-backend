@@ -159,15 +159,6 @@ GoodsServices.hasMany(NeedItem, {
   sourceKey: "tipo_bem_servico",
 });
 
-Leads.belongsTo(NeedItem, {
-  foreignKey: "id_item",
-  targetKey: "id_item",
-});
-NeedItem.hasMany(Leads, {
-  foreignKey: "id_item",
-  sourceKey: "id_item",
-});
-
 Leads.belongsTo(Citizens, {
   foreignKey: "contacto_cidadao",
   targetKey: "contacto",
@@ -215,7 +206,7 @@ Lockers.hasMany(Leads, {
 
 // Sycronizing
 try{
-    await sequelize.sync({force: true})
+    await sequelize.sync({alter: true})
     console.log("All models were synced")
 } catch(e) {
     console.error("Error synching the models", e)
