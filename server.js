@@ -7,7 +7,28 @@ const app = express();
 const PORT = process.env.PORT;
 const HOST = process.env.HOST;
 
-app.use(cors({origin: ['http://localhost:3012', 'https://sam.netdw.tech']}));
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3012',
+  'https://sam.netdw.tech'
+]
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 204
+}
+
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
 app.use(express.json());
 
 // Resources Routes Import
