@@ -14,6 +14,11 @@ export default (sequelize, DataTypes) => sequelize.define("need", {
     allowNull: false,
     defaultValue: "PENDENTE",
    },
+   urgente: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+   },
   },
   {
    tableName: "pedido",

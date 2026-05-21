@@ -17,6 +17,11 @@ export default (sequelize, DataTypes) => sequelize.define("Entity", {
     type: DataTypes.STRING(45),
     allowNull: false,
   },
+  iban: {
+    type: DataTypes.STRING(23),
+    allowNull: true,
+    unique: true,
+  },
   profile_pic: {
     type: DataTypes.STRING(255),
     allowNull: true,

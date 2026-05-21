@@ -4,9 +4,9 @@ export default (sequelize, DataTypes) => sequelize.define("Citizen", {
       primaryKey: true,
    },
    contacto: {
-      type: DataTypes.STRING(13),
-      primaryKey: true,
+      type: DataTypes.STRING(50),
       allowNull: false,
+      unique: true,
    },
    rgpd: {
       type: DataTypes.TINYINT,
@@ -24,6 +24,6 @@ export default (sequelize, DataTypes) => sequelize.define("Citizen", {
    }
    },
    {
-      tableName: "Cidadao",
+      tableName: "cidadao",
       timestamps: false,
    });
