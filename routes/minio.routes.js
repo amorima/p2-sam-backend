@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import * as minioController from "../controllers/minio.controllers.js";
 
+
 const router = express.Router();
 
 const avatarUpload = multer({
@@ -19,6 +20,7 @@ const avatarUpload = multer({
 
 const genericUpload = multer({ storage: multer.memoryStorage() });
 
+router.get("/:bucket/download", minioController.downloadFile);
 router.get("/:bucket", minioController.getPresignedUploadUrl);
 router.post(
   "/:bucket",

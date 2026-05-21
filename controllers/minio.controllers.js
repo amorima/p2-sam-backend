@@ -32,6 +32,31 @@ export const getPresignedUploadUrl = async (req, res, next) => {
   }
 };
 
+export const downloadFile = async (req, res, next) => {
+  const bucket = req.params.bucket;
+  const nomeFicheiro = req.query.nome;
+
+  if (!nomeFicheiro) {
+    return res.status(400).json({ erro: "Falta o nome do ficheiro" });
+  }
+
+  if (bucket !== "avatar" && bucket !== "files") {
+    return res.status(400).json({ erro: "Bucket não autorizado" });
+  }
+
+  try {
+    const stream = await minioClient.getObject(bucket, String(nomeFicheiro));
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${nomeFicheiro}"`
+    );
+    stream.pipe(res);
+  } catch (erro) {
+    next(erro);
+  }
+};
+
 export const uploadFile = async (req, res, next) => {
   const bucket = req.params.bucket;
 
