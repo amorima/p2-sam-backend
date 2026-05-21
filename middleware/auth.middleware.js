@@ -1,6 +1,20 @@
 import { verifyToken, extractToken } from '../utils/auth.utils.js';
 import { unauthorizedError, forbiddenError } from '../utils/error.utils.js';
 
+// Trusted Nuxt-proxy bypass: accepts X-Internal-Key + X-User-Nif/Role headers
+export const verifyInternalOrJWT = (req, res, next) => {
+  const internalKey = req.headers['x-internal-key'];
+  const configKey = process.env.INTERNAL_API_KEY;
+  if (configKey && internalKey === configKey) {
+    req.user = {
+      nif_nipc: req.headers['x-user-nif'] || '',
+      role: req.headers['x-user-role'] || 'patron'
+    };
+    return next();
+  }
+  verifyJWT(req, res, next);
+};
+
 export const verifyJWT = (req, res, next) => {
   try {
     const token = extractToken(req.headers.authorization);
