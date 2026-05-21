@@ -1,6 +1,7 @@
 import { Institutions, Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
+import { hashPassword } from "../utils/auth.utils.js";
 
 export const createInstitution = async (req, res, next) => {
   const { location, entity, contacts, institution } = req.body;
@@ -17,8 +18,16 @@ export const createInstitution = async (req, res, next) => {
   const transaction = await Institutions.sequelize.transaction();
 
   try {
+    // Automatically set role for institution
+    const entityWithRole = { ...entity, role: 'institution' };
+    
+    // Hash password
+    if (entityWithRole.password) {
+      entityWithRole.password = await hashPassword(entityWithRole.password);
+    }
+
     const { entityInstance, locationInstances } = await syncEntityRelations({
-      entity,
+      entity: entityWithRole,
       locations: [location],
       contacts,
       transaction,
@@ -90,11 +99,15 @@ export const updateInstitution = async (req, res, next) => {
     if (!entity) return next(notFoundError("Entity", nif_nipc));
 
     if (institutionData) {
+      // Hash password if provided
+      if (institutionData.password) {
+        institutionData.password = await hashPassword(institutionData.password);
+      }
       await institution.update(institutionData, { transaction });
     }
 
-    if (institutionData) {
-      await institution.update(institutionData, { transaction });
+    if (entityData && entityData.password) {
+      entityData.password = await hashPassword(entityData.password);
     }
 
     await syncEntityRelations({

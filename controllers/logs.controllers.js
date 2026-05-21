@@ -5,7 +5,7 @@ export const getFinancialLog = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const financialLog = await FinancialLogs.findById(id);
+    const financialLog = await FinancialLogs.findByPk(id);
     if (!financialLog) return next(notFoundError("FinancialLog", id));
     res.json(financialLog);
   } catch (e) {
@@ -15,7 +15,7 @@ export const getFinancialLog = async (req, res, next) => {
 
 export const getAllFinancialLogs = async (req, res, next) => {
   try {
-    const financialLogs = await FinancialLogs.find();
+    const financialLogs = await FinancialLogs.findAll();
     res.json(financialLogs);
   } catch (e) {
     next(genericError("Error fetching financial logs"));
@@ -33,7 +33,7 @@ export const createInteractionLog = async (req, res, next) => {
 
 export const getAllInteractionLogs = async (req, res, next) => {
   try {
-    const interactionLogs = await InteractionLogs.find();
+    const interactionLogs = await InteractionLogs.findAll();
     res.json(interactionLogs);
   } catch (e) {
     next(genericError("Error fetching interaction logs"));

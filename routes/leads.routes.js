@@ -1,6 +1,7 @@
 import express from "express";
 
 import * as leadsController from "../controllers/leads.controllers.js";
+import { verifyJWT, requireRoles} from "../middleware/auth.middleware.js"
 
 const router = express.Router();
 
@@ -9,9 +10,9 @@ router.route('/')
     .post(leadsController.createLead)
 router.route('/:id_lead')
     .get(leadsController.getLead)
-    .patch(leadsController.updateLead)
-    .delete(leadsController.deleteLead)
+    .patch(verifyJWT, requireRoles(['admin']),leadsController.updateLead)
+    .delete(verifyJWT, requireRoles(['admin']),leadsController.deleteLead)
 router.route('/validate')
-    .post(leadsController.validateLead)
+    .post(verifyJWT, requireRoles(['admin']),leadsController.validateLead)
 
 export default router;

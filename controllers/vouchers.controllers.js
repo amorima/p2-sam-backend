@@ -14,7 +14,7 @@ export const getVoucher = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const voucher = await Vouchers.findById(id);
+    const voucher = await Vouchers.findByPk(id);
     if (!voucher) return next(notFoundError("Voucher", id));
     res.json(voucher);
   } catch (e) {
@@ -24,7 +24,7 @@ export const getVoucher = async (req, res, next) => {
 
 export const getAllVouchers = async (req, res, next) => {
   try {
-    const vouchers = await Vouchers.find();
+    const vouchers = await Vouchers.findAll();
     res.json(vouchers);
   } catch (e) {
     next(genericError("Error fetching vouchers"));
@@ -35,8 +35,9 @@ export const updateVoucher = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const voucher = await Vouchers.findByIdAndUpdate(id, req.body, { new: true });
+    const voucher = await Vouchers.findByPk(id);
     if (!voucher) return next(notFoundError("Voucher", id));
+    await voucher.update(req.body);
     res.json(voucher);
   } catch (e) {
     next(genericError("Error updating voucher"));

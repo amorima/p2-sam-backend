@@ -1,5 +1,5 @@
 import { Donations, FinancialLogs } from "../models/db.config.js";
-import { genericError, notFoundError, sequelizeValidationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
 import { buildFinancialLogData } from "../utils/donation.utils.js";
 
 export const createDonation = async (req, res, next) => {
@@ -89,6 +89,16 @@ export const createPatronDonation = async (req, res, next) => {
   const { nif_nipc } = req.params;
   const { financial_log, anonimo, estado, ...donationData } = req.body;
 
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
+  // Verify user is the patron owner or admin
+  if (req.user.nif_nipc !== nif_nipc && req.user.role !== 'admin') {
+    return next(forbiddenError('You do not have permission to create donations for this patron'));
+  }
+
   try {
     // Only include anonimo and estado if explicitly provided
     donationData.mecena_nif_nipc = nif_nipc;
@@ -119,6 +129,11 @@ export const createPatronDonation = async (req, res, next) => {
 export const getPatronDonation = async (req, res, next) => {
   const { id_donation, nif_nipc } = req.params;
 
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
   try {
     const donation = await Donations.findOne({
       where: { id_doacao: id_donation, mecena_nif_nipc: nif_nipc },
@@ -134,6 +149,11 @@ export const getPatronDonation = async (req, res, next) => {
 export const getAllPatronDonation = async (req, res, next) => {
   const { nif_nipc } = req.params;
 
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
   try {
     const donations = await Donations.findAll({ where: { mecena_nif_nipc: nif_nipc } });
     res.json({ donations });
@@ -145,6 +165,11 @@ export const getAllPatronDonation = async (req, res, next) => {
 export const updatePatronDonation = async (req, res, next) => {
   const { id_donation, nif_nipc } = req.params;
   const { financial_log, ...updateData } = req.body;
+
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
 
   try {
     const donation = await Donations.findOne({
@@ -166,6 +191,11 @@ export const updatePatronDonation = async (req, res, next) => {
 
 export const deletePatronDonation = async (req, res, next) => {
   const { id_donation, nif_nipc } = req.params;
+
+  // Validate nif_nipc format
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
 
   try {
     const donation = await Donations.findOne({

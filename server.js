@@ -32,6 +32,7 @@ app.options('*', cors(corsOptions))
 app.use(express.json());
 
 // Resources Routes Import
+import authRoutes from "./routes/auth.routes.js";
 import leadsRoutes from "./routes/leads.routes.js";
 import businessRoutes from "./routes/business.routes.js";
 import donationsRoutes from "./routes/donations.routes.js";
@@ -48,6 +49,7 @@ import logsRoutes from "./routes/logs.routes.js";
 import telemetryRoutes from "./routes/telemetry.routes.js"; 
 
 // Apply Router
+app.use('/auth', authRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/business', businessRoutes);
 app.use('/donations', donationsRoutes);
@@ -73,6 +75,15 @@ app.use((req, res, next) => {
 
 // Error Handler
 app.use((err, req, res, next) => {
+    // Log error details for debugging
+    console.error(`[${new Date().toISOString()}] Error:`, {
+        message: err.message,
+        status: err.status || 500,
+        path: req.path,
+        method: req.method,
+        stack: err.stack,
+    });
+
     // Errors in JSON parcing
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
         err.message = "Invalid JSON payload";

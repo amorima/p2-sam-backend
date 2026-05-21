@@ -72,6 +72,8 @@ import InteractionLogsModel from "./interaction_logs.models.js";
 const InteractionLogs = InteractionLogsModel(mongoose);
 import NotificationsModels from "./notifications.models.js";
 const Notifications = NotificationsModels(mongoose);
+import RefreshTokensModel from "./refresh_tokens.models.js";
+const RefreshTokens = RefreshTokensModel(mongoose);
 
 // Define Relations
 Entities.belongsToMany(Locations, {
@@ -213,4 +215,4 @@ try{
     process.exit(1)
 }
 
-export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications };
+export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications, RefreshTokens };
