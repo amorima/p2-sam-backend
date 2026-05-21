@@ -11,13 +11,14 @@ import { genericError, unauthorizedError, missingFieldError, validationError } f
 
 export const login = async (req, res, next) => {
   try {
-    const { email_login, password } = req.body;
+    const { email_login, nif_nipc, password } = req.body;
 
-    if (!email_login || !password) {
-      return next(missingFieldError(['email_login', 'password']));
+    if ((!email_login && !nif_nipc) || !password) {
+      return next(missingFieldError(['email_login or nif_nipc', 'password']));
     }
 
-    const entity = await Entities.findOne({ where: { email_login } });
+    const where = nif_nipc ? { nif_nipc } : { email_login };
+    const entity = await Entities.findOne({ where });
 
     if (!entity) {
       return next(unauthorizedError('Invalid email or password'));
@@ -57,14 +58,15 @@ export const login = async (req, res, next) => {
       message: 'Login successful',
       accessToken,
       refreshToken,
-      expiresIn: 900, // 15 minutes in seconds
-      refreshExpiresIn: 604800, // 7 days in seconds
+      expiresIn: 900,
+      refreshExpiresIn: 604800,
       tokenType: 'Bearer',
       entity: {
         nif_nipc: entity.nif_nipc,
         email_login: entity.email_login,
         nome_entidade: entity.nome_entidade,
         role: entity.role,
+        profile_pic: entity.profile_pic ?? null,
       },
     });
   } catch (error) {
