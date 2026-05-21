@@ -20,6 +20,7 @@ export const formatEntityBase = ({ entity, locations = [], contacts = [] }) => (
     nome_entidade: entity?.nome_entidade,
     email_login: entity?.email_login,
     iban: entity?.iban,
+    profile_pic: entity?.profile_pic ?? null,
     locations: (locations || []).map(formatLocation),
     contacts: (contacts || []).map(formatContact),
 });
@@ -107,7 +108,7 @@ export const syncEntityRelations = async ({
 export const entityInclude = [
   {
     model: Entities,
-    attributes: ["nif_nipc", "nome_entidade", "email_login", "iban"],
+    attributes: ["nif_nipc", "nome_entidade", "email_login", "iban", "profile_pic"],
     include: [
       {
         model: Locations,

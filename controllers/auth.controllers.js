@@ -93,6 +93,18 @@ export const getProfile = async (req, res, next) => {
   }
 };
 
+export const updateProfilePic = async (req, res, next) => {
+  try {
+    const { profile_pic } = req.body;
+    const entity = await Entities.findByPk(req.user.nif_nipc);
+    if (!entity) return next(unauthorizedError('User not found'));
+    await entity.update({ profile_pic: profile_pic ?? null });
+    res.json({ profile_pic });
+  } catch (error) {
+    next(genericError('Error updating profile picture: ' + error.message));
+  }
+};
+
 export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
