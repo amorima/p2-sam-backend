@@ -46,11 +46,15 @@ export const downloadFile = async (req, res, next) => {
 
   try {
     const stream = await minioClient.getObject(bucket, String(nomeFicheiro));
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename="${nomeFicheiro}"`
-    );
+    const ext = String(nomeFicheiro).split(".").pop()?.toLowerCase() ?? "";
+    const mimeTypes = {
+      jpg: "image/jpeg", jpeg: "image/jpeg",
+      png: "image/png", gif: "image/gif", webp: "image/webp",
+      pdf: "application/pdf",
+    };
+    const contentType = mimeTypes[ext] ?? "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `inline; filename="${nomeFicheiro}"`);
     stream.pipe(res);
   } catch (erro) {
     next(erro);
