@@ -25,6 +25,10 @@ export default (sequelize, DataTypes) => sequelize.define("lead",{
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  id_item: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   item_pedido: {
     type: DataTypes.STRING(50),
     allowNull: true,

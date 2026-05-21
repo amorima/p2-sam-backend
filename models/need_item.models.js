@@ -1,21 +1,25 @@
 export default (sequelize, DataTypes) => sequelize.define("need item", {
-   id_pedido: {
-     type: DataTypes.INTEGER,
-     primaryKey: true,
-     allowNull: false,
-   },
-   tipo_bem_servico: {
-     type: DataTypes.STRING(50),
-     primaryKey: true,
-     allowNull: false,
-   },
-   publico: {
-     type: DataTypes.TINYINT,
-     allowNull: true,
-   },
+  id_item: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
   },
-  {
-   tableName: "pedido_bens_e_servicos",
-   timestamps: false,
-  }
-);
+  id_pedido: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  tipo_bem_servico: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+  },
+  publico: {
+    type: DataTypes.TINYINT,
+    allowNull: true,
+  },
+}, {
+  tableName: "pedido_bens_e_servicos",
+  timestamps: false,
+  indexes: [
+    { unique: true, fields: ['id_pedido', 'tipo_bem_servico'], name: 'uq_pbs_pedido_item' }
+  ]
+});

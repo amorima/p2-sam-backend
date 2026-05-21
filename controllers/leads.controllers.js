@@ -1,4 +1,4 @@
-import { Leads, Panels, Citizens, NeedItem, Lockers } from "../models/db.config.js";
+import { Leads, Panels, Citizens, Lockers, NeedItem } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, conflictError, validationError } from "../utils/error.utils.js";
 
 export const createLead = async (req, res, next) => {

@@ -190,6 +190,15 @@ GoodsServices.hasMany(Offers, {
   sourceKey: "tipo_bem_servico",
 });
 
+Leads.belongsTo(NeedItem, {
+  foreignKey: "id_item",
+  targetKey: "id_item",
+});
+NeedItem.hasMany(Leads, {
+  foreignKey: "id_item",
+  sourceKey: "id_item",
+});
+
 Leads.belongsTo(Panels, {
   foreignKey: "id_painel",
   targetKey: "id_dispositivo",
