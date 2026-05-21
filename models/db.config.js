@@ -164,6 +164,8 @@ GoodsServices.hasMany(NeedItem, {
 Leads.belongsTo(Citizens, {
   foreignKey: "contacto_cidadao",
   targetKey: "contacto",
+  onDelete: "NO ACTION",
+  onUpdate: "CASCADE",
 });
 Citizens.hasMany(Leads, {
   foreignKey: "contacto_cidadao",
