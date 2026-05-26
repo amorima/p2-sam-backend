@@ -92,6 +92,35 @@ export const createLead = async (req, res, next) => {
 
 export const getAllLeads = async (req, res, next) => {
   try {
+    const debug = req.query.debug === '1';
+    if (debug) {
+      try {
+        const plain = await Leads.findAll();
+        try {
+          const withCitizen = await Leads.findAll({ include: [Citizens] });
+          try {
+            const withPanel = await Leads.findAll({ include: [Citizens, Panels] });
+            try {
+              const withLocker = await Leads.findAll({ include: [Citizens, Panels, Lockers] });
+              try {
+                const full = await Leads.findAll({ include: [Citizens, Panels, Lockers, { model: NeedItem, as: 'need item' }] });
+                return res.json({ ok: true, step: 'all', count: full.length });
+              } catch (eNi) {
+                return res.json({ ok: false, step: 'NeedItem', error: eNi?.message, sql: eNi?.original?.sqlMessage, withLockerCount: withLocker.length });
+              }
+            } catch (eLo) {
+              return res.json({ ok: false, step: 'Lockers', error: eLo?.message, sql: eLo?.original?.sqlMessage, withPanelCount: withPanel.length });
+            }
+          } catch (ePa) {
+            return res.json({ ok: false, step: 'Panels', error: ePa?.message, sql: ePa?.original?.sqlMessage, withCitizenCount: withCitizen.length });
+          }
+        } catch (eCi) {
+          return res.json({ ok: false, step: 'Citizens', error: eCi?.message, sql: eCi?.original?.sqlMessage, plainCount: plain.length });
+        }
+      } catch (ePlain) {
+        return res.json({ ok: false, step: 'plain', error: ePlain?.message, sql: ePlain?.original?.sqlMessage });
+      }
+    }
     const leads = await Leads.findAll({ include: [Citizens, Panels, Lockers, { model: NeedItem, as: 'need item' }] });
     res.json(leads);
   } catch (e) {
