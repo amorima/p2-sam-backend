@@ -86,42 +86,22 @@ export const createLead = async (req, res, next) => {
   } catch (e) {
     await transaction.rollback();
     console.error("[leads] create error:", e?.name, e?.message, e?.original?.sqlMessage ?? '', e?.errors ?? '');
+    if (req.query.debug === '1') {
+      return res.status(500).json({
+        description: "Error creating lead (debug)",
+        name: e?.name,
+        message: e?.message,
+        sql: e?.original?.sqlMessage,
+        errors: e?.errors?.map(er => ({ path: er.path, message: er.message, value: er.value })) ?? []
+      });
+    }
     next(genericError("Error creating lead"));
   }
 };
 
 export const getAllLeads = async (req, res, next) => {
   try {
-    const debug = req.query.debug === '1';
-    if (debug) {
-      try {
-        const plain = await Leads.findAll();
-        try {
-          const withCitizen = await Leads.findAll({ include: [Citizens] });
-          try {
-            const withPanel = await Leads.findAll({ include: [Citizens, Panels] });
-            try {
-              const withLocker = await Leads.findAll({ include: [Citizens, Panels, Lockers] });
-              try {
-                const full = await Leads.findAll({ include: [Citizens, Panels, Lockers, { model: NeedItem, as: 'need item' }] });
-                return res.json({ ok: true, step: 'all', count: full.length });
-              } catch (eNi) {
-                return res.json({ ok: false, step: 'NeedItem', error: eNi?.message, sql: eNi?.original?.sqlMessage, withLockerCount: withLocker.length });
-              }
-            } catch (eLo) {
-              return res.json({ ok: false, step: 'Lockers', error: eLo?.message, sql: eLo?.original?.sqlMessage, withPanelCount: withPanel.length });
-            }
-          } catch (ePa) {
-            return res.json({ ok: false, step: 'Panels', error: ePa?.message, sql: ePa?.original?.sqlMessage, withCitizenCount: withCitizen.length });
-          }
-        } catch (eCi) {
-          return res.json({ ok: false, step: 'Citizens', error: eCi?.message, sql: eCi?.original?.sqlMessage, plainCount: plain.length });
-        }
-      } catch (ePlain) {
-        return res.json({ ok: false, step: 'plain', error: ePlain?.message, sql: ePlain?.original?.sqlMessage });
-      }
-    }
-    const leads = await Leads.findAll({ include: [Citizens, Panels, Lockers, { model: NeedItem, as: 'need item' }] });
+    const leads = await Leads.findAll({ include: [Citizens, Panels, Lockers] });
     res.json(leads);
   } catch (e) {
     console.error("[leads] getAll error:", e?.message, e?.original?.sqlMessage ?? '');
@@ -133,7 +113,7 @@ export const getLead = async (req, res, next) => {
   const { id_lead } = req.params;
 
   try {
-    const lead = await Leads.findByPk(id_lead, { include: [Citizens, Panels, Lockers, { model: NeedItem, as: 'need item' }] });
+    const lead = await Leads.findByPk(id_lead, { include: [Citizens, Panels, Lockers] });
     if (!lead) return next(notFoundError("Lead", id_lead));
     res.json(lead);
   } catch (e) {
