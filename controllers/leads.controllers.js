@@ -5,13 +5,11 @@ export const createLead = async (req, res, next) => {
   const { id_painel, nome_cidadao, contacto_cidadao, rgpd, id_pedido, id_item, pin_entrega, id_locker } = req.body;
   const missingFields = [];
 
-  if (!id_painel) missingFields.push("id_painel");
   if (!nome_cidadao) missingFields.push("nome_cidadao");
   if (!contacto_cidadao) missingFields.push("contacto_cidadao");
   if (!id_pedido) missingFields.push("id_pedido");
   if (!id_item) missingFields.push("id_item");
   if (!pin_entrega) missingFields.push("pin_entrega");
-  if (!id_locker) missingFields.push("id_locker");
 
   if (missingFields.length) {
     return next(missingFieldError(missingFields));
@@ -20,10 +18,12 @@ export const createLead = async (req, res, next) => {
   const transaction = await Leads.sequelize.transaction();
 
   try {
-    const panel = await Panels.findByPk(id_painel);
-    if (!panel) {
-      await transaction.rollback();
-      return next(notFoundError("Panel", id_painel));
+    if (id_painel) {
+      const panel = await Panels.findByPk(id_painel);
+      if (!panel) {
+        await transaction.rollback();
+        return next(notFoundError("Panel", id_painel));
+      }
     }
 
     let citizen = await Citizens.findOne({ where: { contacto: contacto_cidadao }, transaction });
@@ -59,22 +59,24 @@ export const createLead = async (req, res, next) => {
       return next(conflictError([{ id_item: "A lead already exists for this item" }]));
     }
 
-    const locker = await Lockers.findByPk(id_locker);
-    if (!locker) {
-      await transaction.rollback();
-      return next(notFoundError("Locker", id_locker));
+    if (id_locker) {
+      const locker = await Lockers.findByPk(id_locker);
+      if (!locker) {
+        await transaction.rollback();
+        return next(notFoundError("Locker", id_locker));
+      }
     }
 
     const lead = await Leads.create(
       {
-        id_painel,
+        id_painel: id_painel || null,
         nome_cidadao,
         contacto_cidadao,
         id_pedido,
         id_item,
         item_pedido: needItem.tipo_bem_servico,
         pin_entrega,
-        id_locker,
+        id_locker: id_locker || null,
       },
       { transaction }
     );
