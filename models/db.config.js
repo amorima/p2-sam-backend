@@ -208,6 +208,18 @@ Lockers.hasMany(Leads, {
   sourceKey: "id_locker",
 });
 
+// One-off column nullability fix: sync({alter:true}) fails to make these
+// columns nullable when an existing FK constraint references them. Run an
+// explicit ALTER first so subsequent leads INSERTs without id_painel/id_locker
+// don't fail with "Column 'id_painel' cannot be null".
+try {
+    await sequelize.query('ALTER TABLE leads MODIFY id_painel INT NULL');
+    await sequelize.query('ALTER TABLE leads MODIFY id_locker INT NULL');
+    console.log("leads.id_painel/id_locker columns ensured nullable");
+} catch (e) {
+    console.warn("Could not ensure leads columns nullable (non-fatal):", e.message);
+}
+
 // Sycronizing
 try{
     await sequelize.sync({alter: true})
