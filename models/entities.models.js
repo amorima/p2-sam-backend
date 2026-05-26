@@ -29,6 +29,16 @@ export default (sequelize, DataTypes) => sequelize.define("Entity", {
     allowNull: false,
     defaultValue: 'patron',
   },
+  blocked: {
+    type: DataTypes.TINYINT,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  reason: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    defaultValue: null,
+  },
   },
   {
     tableName: "entidade",

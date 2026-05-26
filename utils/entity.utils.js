@@ -21,6 +21,8 @@ export const formatEntityBase = ({ entity, locations = [], contacts = [] }) => (
     email_login: entity?.email_login,
     iban: entity?.iban,
     profile_pic: entity?.profile_pic ?? null,
+    blocked: Boolean(entity?.blocked),
+    reason: entity?.reason ?? null,
     locations: (locations || []).map(formatLocation),
     contacts: (contacts || []).map(formatContact),
 });
@@ -108,7 +110,7 @@ export const syncEntityRelations = async ({
 export const entityInclude = [
   {
     model: Entities,
-    attributes: ["nif_nipc", "nome_entidade", "email_login", "iban", "profile_pic"],
+    attributes: ["nif_nipc", "nome_entidade", "email_login", "iban", "profile_pic", "blocked", "reason"],
     include: [
       {
         model: Locations,
