@@ -91,7 +91,7 @@ export const createLead = async (req, res, next) => {
 
 export const getAllLeads = async (req, res, next) => {
   try {
-    const leads = await Leads.findAll({ include: [Citizens, Panels, Lockers, NeedItem] });
+    const leads = await Leads.findAll({ include: [Citizens, Panels, Lockers, { model: NeedItem, as: 'need item' }] });
     res.json(leads);
   } catch (e) {
     next(genericError("Error fetching leads"));
@@ -102,7 +102,7 @@ export const getLead = async (req, res, next) => {
   const { id_lead } = req.params;
 
   try {
-    const lead = await Leads.findByPk(id_lead, { include: [Citizens, Panels, Lockers, NeedItem] });
+    const lead = await Leads.findByPk(id_lead, { include: [Citizens, Panels, Lockers, { model: NeedItem, as: 'need item' }] });
     if (!lead) return next(notFoundError("Lead", id_lead));
     res.json(lead);
   } catch (e) {
