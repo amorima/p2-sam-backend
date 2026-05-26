@@ -4,6 +4,9 @@ import { verifyJWT, requireRoles} from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
+router.route("/")
+  .get(citizensController.getAllCitizens);
+
 router.route("/:contacto")
   .get(citizensController.getCitizen)
   .delete(verifyJWT, requireRoles('admin'), citizensController.deleteCitizen);

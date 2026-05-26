@@ -1,6 +1,15 @@
 import { Citizens, Leads } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
 
+export const getAllCitizens = async (req, res, next) => {
+  try {
+    const citizens = await Citizens.findAll();
+    res.json({ data: citizens });
+  } catch (e) {
+    next(genericError("Error fetching citizens"));
+  }
+};
+
 export const getCitizen = async (req, res, next) => {
   const { contacto } = req.params;
 
