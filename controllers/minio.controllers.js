@@ -32,6 +32,35 @@ export const getPresignedUploadUrl = async (req, res, next) => {
   }
 };
 
+export const downloadFile = async (req, res, next) => {
+  const bucket = req.params.bucket;
+  const nomeFicheiro = req.query.nome;
+
+  if (!nomeFicheiro) {
+    return res.status(400).json({ erro: "Falta o nome do ficheiro" });
+  }
+
+  if (bucket !== "avatar" && bucket !== "files") {
+    return res.status(400).json({ erro: "Bucket não autorizado" });
+  }
+
+  try {
+    const stream = await minioClient.getObject(bucket, String(nomeFicheiro));
+    const ext = String(nomeFicheiro).split(".").pop()?.toLowerCase() ?? "";
+    const mimeTypes = {
+      jpg: "image/jpeg", jpeg: "image/jpeg",
+      png: "image/png", gif: "image/gif", webp: "image/webp",
+      pdf: "application/pdf",
+    };
+    const contentType = mimeTypes[ext] ?? "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `inline; filename="${nomeFicheiro}"`);
+    stream.pipe(res);
+  } catch (erro) {
+    next(erro);
+  }
+};
+
 export const uploadFile = async (req, res, next) => {
   const bucket = req.params.bucket;
 
