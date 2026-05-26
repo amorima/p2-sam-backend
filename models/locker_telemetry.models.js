@@ -9,9 +9,12 @@ export default (mongoose) => {
         cpu_temperatura: Number,
         dnb_sinal: Number,
         aviso: String,
+        // Cacifos têm sensor de porta + numpad; painéis têm ecrã táctil + impressora.
         status: {
-            sensor_porta: String,
-            numpad: String,
+            sensor_porta: String,   // cacifo
+            numpad: String,          // cacifo
+            ecra_tatil: String,      // painel
+            impressora: String,      // painel
         },
         versao: String,
         device: {
