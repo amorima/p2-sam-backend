@@ -13,7 +13,8 @@ export default (mongoose) => {
             sensor_porta: String,
             numpad: String,
         },
-        versao:String
+        versao: String,
+        timestamp: { type: Date, default: Date.now, index: true }
     },{
         timestamps: false
     }))

@@ -94,6 +94,7 @@ export const getAllLeads = async (req, res, next) => {
     const leads = await Leads.findAll({ include: [Citizens, Panels, Lockers, { model: NeedItem, as: 'need item' }] });
     res.json(leads);
   } catch (e) {
+    console.error("[leads] getAll error:", e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching leads"));
   }
 };
@@ -106,6 +107,7 @@ export const getLead = async (req, res, next) => {
     if (!lead) return next(notFoundError("Lead", id_lead));
     res.json(lead);
   } catch (e) {
+    console.error("[leads] get error:", e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching lead"));
   }
 };
