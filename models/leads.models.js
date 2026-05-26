@@ -11,7 +11,7 @@ export default (sequelize, DataTypes) => sequelize.define("lead",{
   },
   id_painel: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
   },
   nome_cidadao: {
     type: DataTypes.STRING(50),
@@ -44,7 +44,7 @@ export default (sequelize, DataTypes) => sequelize.define("lead",{
   },
   id_locker: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
   },
   },
   {

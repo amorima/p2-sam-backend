@@ -217,6 +217,16 @@ Lockers.hasMany(Leads, {
   sourceKey: "id_locker",
 });
 
+Leads.belongsTo(NeedItem, {
+  foreignKey: "id_item",
+  targetKey: "id_item",
+  as: "need item",
+});
+NeedItem.hasMany(Leads, {
+  foreignKey: "id_item",
+  sourceKey: "id_item",
+});
+
 // Sycronizing
 try{
     await sequelize.sync({alter: true})
