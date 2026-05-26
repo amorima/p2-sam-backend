@@ -85,6 +85,7 @@ export const createLead = async (req, res, next) => {
     res.status(201).json(lead);
   } catch (e) {
     await transaction.rollback();
+    console.error("[leads] create error:", e?.name, e?.message, e?.original?.sqlMessage ?? '', e?.errors ?? '');
     next(genericError("Error creating lead"));
   }
 };
