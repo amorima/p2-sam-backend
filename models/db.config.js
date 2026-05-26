@@ -208,23 +208,12 @@ Lockers.hasMany(Leads, {
   sourceKey: "id_locker",
 });
 
-Leads.belongsTo(NeedItem, {
-  foreignKey: "id_item",
-  targetKey: "id_item",
-  as: "need item",
-});
-NeedItem.hasMany(Leads, {
-  foreignKey: "id_item",
-  sourceKey: "id_item",
-});
-
 // Sycronizing
 try{
     await sequelize.sync({alter: true})
     console.log("All models were synced")
 } catch(e) {
-    console.error("Error synching the models", e)
-    process.exit(1)
+    console.error("Error synching the models (non-fatal, continuing):", e.message)
 }
 
 export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications, RefreshTokens };
