@@ -1,11 +1,12 @@
-import { Business, Entities, Locations, Contacts } from "../models/db.config.js";
+import { Business, Entities, Locations, Contacts, Offers } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
+import { ensureGoodsService } from "../utils/offer.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
 
 
 export const createBusiness = async (req, res, next) => {
-  const { location, entity, contacts, business } = req.body;
+  const { location, entity, contacts, business, offers } = req.body;
 
   const missingFields = [];
   if (!location) missingFields.push("location");
@@ -21,7 +22,7 @@ export const createBusiness = async (req, res, next) => {
   try {
     // Automatically set role for business
     const entityWithRole = { ...entity, role: 'business' };
-    
+
     // Hash password
     if (entityWithRole.password) {
       entityWithRole.password = await hashPassword(entityWithRole.password);
@@ -52,6 +53,28 @@ export const createBusiness = async (req, res, next) => {
       },
       { transaction }
     );
+
+    const createdOffers = [];
+    if (Array.isArray(offers) && offers.length) {
+      for (const rawOffer of offers) {
+        const { tipo_bem, tipo_bem_servico, descricao, valor_total, desconto } = rawOffer || {};
+        if (!tipo_bem_servico || descricao == null || valor_total == null || desconto == null) {
+          throw missingFieldError(["tipo_bem_servico", "descricao", "valor_total", "desconto"]);
+        }
+        await ensureGoodsService({ tipo_bem_servico, tipo_bem }, transaction);
+        const offer = await Offers.create(
+          {
+            negocio_nif_nipc: entityInstance.nif_nipc,
+            tipo_bem_servico,
+            descricao,
+            valor_total,
+            desconto,
+          },
+          { transaction }
+        );
+        createdOffers.push(offer);
+      }
+    }
 
     await transaction.commit();
 
@@ -87,7 +110,7 @@ export const createBusiness = async (req, res, next) => {
       },
     });
 
-    res.status(201).json(businessResponse);
+    res.status(201).json({ ...businessResponse, offers: createdOffers });
   } catch (e) {
     await transaction.rollback();
     if (e.name === "SequelizeValidationError") {
