@@ -47,7 +47,8 @@ import entitiesRoutes from "./routes/entities.routes.js";
 import vouchersRoutes from "./routes/vouchers.routes.js";
 import notificationsRoutes from "./routes/notifications.routes.js";
 import logsRoutes from "./routes/logs.routes.js";
-import telemetryRoutes from "./routes/telemetry.routes.js"; 
+import telemetryRoutes from "./routes/telemetry.routes.js";
+import goodsServicesRoutes from "./routes/goods_services.routes.js";
 
 // Apply Router
 app.use('/auth', authRoutes);
@@ -65,6 +66,7 @@ app.use('/vouchers', vouchersRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/logs', logsRoutes);
 app.use('/telemetry', telemetryRoutes);
+app.use('/goods-services', goodsServicesRoutes);
 
 app.use("/api/upload", minioRoutes);
 
