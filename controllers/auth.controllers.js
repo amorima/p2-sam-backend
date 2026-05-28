@@ -8,7 +8,7 @@ import {
   generateTokenFamily,
 } from "../utils/auth.utils.js";
 import { genericError, unauthorizedError, missingFieldError, validationError } from "../utils/error.utils.js";
-import { minioClient, buildPublicUrl, removeObjectSafe } from "../utils/minio.utils.js";
+import { minioClient, buildPublicUrl, removeObjectSafe, removeAllWithPrefix } from "../utils/minio.utils.js";
 
 const AVATAR_BUCKET = "avatar";
 
@@ -132,6 +132,15 @@ export const updateAvatar = async (req, res, next) => {
     const extension = extensionFromMime(req.file.mimetype);
     const newFileName = `${entity.nif_nipc}_${Date.now()}.${extension}`;
 
+    console.log(`[updateAvatar] nif=${entity.nif_nipc} previous=${previousFileName ?? '<none>'} new=${newFileName}`);
+
+    // Upload first, then sweep. Two cleanup strategies combined:
+    //   1) The exact name stored in profile_pic — covers legacy uploads that
+    //      kept the original filename.
+    //   2) Anything in the avatar bucket whose key starts with `<nif>_` —
+    //      covers leftovers from prior requests whose cleanup failed, or
+    //      whose profile_pic row drifted from the stored object. The new
+    //      file is excluded from the sweep.
     await minioClient.putObject(AVATAR_BUCKET, newFileName, req.file.buffer, {
       'Content-Type': req.file.mimetype,
     });
@@ -141,6 +150,7 @@ export const updateAvatar = async (req, res, next) => {
     if (previousFileName && previousFileName !== newFileName) {
       await removeObjectSafe(AVATAR_BUCKET, previousFileName);
     }
+    await removeAllWithPrefix(AVATAR_BUCKET, `${entity.nif_nipc}_`, [newFileName]);
 
     res.json({
       success: true,

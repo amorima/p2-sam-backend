@@ -17,8 +17,34 @@ export const removeObjectSafe = async (bucket, fileName) => {
   if (!fileName) return;
   try {
     await minioClient.removeObject(bucket, fileName);
+    console.log(`[minio] removed ${bucket}/${fileName}`);
   } catch (err) {
     // Object may already be gone or never existed; not fatal.
-    console.warn(`[minio] removeObject failed for ${bucket}/${fileName}: ${err.message}`);
+    console.warn(`[minio] removeObject failed for ${bucket}/${fileName}:`, err);
+  }
+};
+
+export const listObjectNames = (bucket, prefix) =>
+  new Promise((resolve, reject) => {
+    const names = [];
+    const stream = minioClient.listObjectsV2(bucket, prefix, true);
+    stream.on("data", (obj) => { if (obj?.name) names.push(obj.name); });
+    stream.on("error", reject);
+    stream.on("end", () => resolve(names));
+  });
+
+export const removeAllWithPrefix = async (bucket, prefix, exclude = []) => {
+  if (!prefix) return [];
+  try {
+    const names = await listObjectNames(bucket, prefix);
+    const excludeSet = new Set(exclude);
+    const targets = names.filter((n) => !excludeSet.has(n));
+    if (targets.length === 0) return [];
+    await minioClient.removeObjects(bucket, targets);
+    console.log(`[minio] removed ${targets.length} object(s) from ${bucket} with prefix '${prefix}': ${targets.join(", ")}`);
+    return targets;
+  } catch (err) {
+    console.warn(`[minio] removeAllWithPrefix failed for ${bucket} prefix='${prefix}':`, err);
+    return [];
   }
 };
