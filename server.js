@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import "dotenv/config";
 
 const app = express();
@@ -27,9 +29,39 @@ const corsOptions = {
   optionsSuccessStatus: 204
 }
 
+app.use(helmet())
 app.use(cors(corsOptions))
 app.options(/.*/, cors(corsOptions))
 app.use(express.json());
+
+// Global rate limit
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { description: 'Demasiados pedidos. Tente novamente mais tarde.' }
+})
+
+// Strict limit for login: prevents brute force on NIF/password
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { description: 'Demasiadas tentativas de login. Tente novamente em 15 minutos.' }
+})
+
+// Moderate limit for token refresh: covers authBackendFetch refresh chains
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { description: 'Demasiados pedidos de renovação de sessão.' }
+})
+
+app.use(globalLimiter)
 
 // Resources Routes Import
 import authRoutes from "./routes/auth.routes.js";
@@ -51,6 +83,8 @@ import telemetryRoutes from "./routes/telemetry.routes.js";
 import goodsServicesRoutes from "./routes/goods_services.routes.js";
 
 // Apply Router
+app.use('/auth/login', loginLimiter);
+app.use('/auth/refresh', refreshLimiter);
 app.use('/auth', authRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/business', businessRoutes);
