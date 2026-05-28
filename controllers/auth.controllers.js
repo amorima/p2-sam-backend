@@ -7,7 +7,7 @@ import {
   verifyRefreshToken,
   generateTokenFamily,
 } from "../utils/auth.utils.js";
-import { genericError, unauthorizedError, missingFieldError, validationError } from "../utils/error.utils.js";
+import { genericError, unauthorizedError, forbiddenError, missingFieldError, validationError } from "../utils/error.utils.js";
 import { minioClient, buildPublicUrl, removeObjectSafe, removeAllWithPrefix } from "../utils/minio.utils.js";
 
 const AVATAR_BUCKET = "avatar";
@@ -40,6 +40,10 @@ export const login = async (req, res, next) => {
 
     if (!isPasswordValid) {
       return next(unauthorizedError('Invalid email or password'));
+    }
+
+    if (entity.blocked) {
+      return next(forbiddenError(entity.reason || 'Account suspended'));
     }
 
     const payload = {
@@ -266,6 +270,10 @@ export const refreshToken = async (req, res, next) => {
     const entity = await Entities.findByPk(decoded.nif_nipc);
     if (!entity) {
       return next(unauthorizedError('User not found'));
+    }
+
+    if (entity.blocked) {
+      return next(forbiddenError(entity.reason || 'Account suspended'));
     }
 
     // Generate new tokens (token rotation)
