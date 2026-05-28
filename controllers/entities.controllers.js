@@ -1,5 +1,31 @@
 import { Entities } from "../models/db.config.js";
-import { genericError, notFoundError, missingFieldError, validationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, missingFieldError, validationError, forbiddenError } from "../utils/error.utils.js";
+
+export const updateEntityProfile = async (req, res, next) => {
+  const { nif_nipc } = req.params;
+  const { nome_entidade, email_login } = req.body;
+
+  if (!nome_entidade && !email_login) {
+    return next(missingFieldError(["nome_entidade or email_login"]));
+  }
+
+  try {
+    const entity = await Entities.findByPk(nif_nipc);
+    if (!entity) return next(notFoundError("Entity", nif_nipc));
+
+    if (nome_entidade) entity.nome_entidade = String(nome_entidade).trim();
+    if (email_login) entity.email_login = String(email_login).trim();
+    await entity.save();
+
+    res.json({
+      nif_nipc: entity.nif_nipc,
+      nome_entidade: entity.nome_entidade,
+      email_login: entity.email_login,
+    });
+  } catch (e) {
+    next(genericError("Error updating entity profile"));
+  }
+};
 
 export const updateEntityBlocked = async (req, res, next) => {
   const { nif_nipc } = req.params;

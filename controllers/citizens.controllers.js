@@ -35,7 +35,7 @@ export const updateCitizenBlocked = async (req, res, next) => {
   }
 
   if (blocked && (!reason || reason.length === 0)) {
-    return next(validationError[{ reason: "Reason must be filled for a valid suspension"}])
+    return next(validationError([{ reason: "Reason must be filled for a valid suspension" }]))
   }
 
   try {
