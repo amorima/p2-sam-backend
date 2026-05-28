@@ -1,12 +1,4 @@
-import * as Minio from "minio";
-
-const minioClient = new Minio.Client({
-  endPoint: process.env.MINIO_ENDPOINT,
-  port: Number(process.env.MINIO_PORT),
-  useSSL: process.env.MINIO_USE_SSL === "true",
-  accessKey: process.env.MINIO_ACCESS_KEY,
-  secretKey: process.env.MINIO_SECRET_KEY,
-});
+import { minioClient, buildPublicUrl } from "../utils/minio.utils.js";
 
 export const getPresignedUploadUrl = async (req, res, next) => {
   const bucket = req.params.bucket;
@@ -79,13 +71,9 @@ export const uploadFile = async (req, res, next) => {
       "Content-Type": req.file.mimetype,
     });
 
-    const publicBaseUrl =
-      process.env.MINIO_PUBLIC_URL || `http://localhost:9000`;
-    const publicUrl = `${publicBaseUrl.replace(/\/+$/, "")}/${bucket}/${nomeFicheiro}`;
-
     res.json({
       success: true,
-      url: publicUrl,
+      url: buildPublicUrl(bucket, nomeFicheiro),
       fileName: nomeFicheiro,
       bucket: bucket,
     });

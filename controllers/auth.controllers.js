@@ -8,6 +8,18 @@ import {
   generateTokenFamily,
 } from "../utils/auth.utils.js";
 import { genericError, unauthorizedError, missingFieldError, validationError } from "../utils/error.utils.js";
+import { minioClient, buildPublicUrl, removeObjectSafe } from "../utils/minio.utils.js";
+
+const AVATAR_BUCKET = "avatar";
+
+const extensionFromMime = (mime) => {
+  switch (mime) {
+    case "image/jpeg": return "jpg";
+    case "image/png": return "png";
+    case "image/gif": return "gif";
+    default: return "bin";
+  }
+};
 
 export const login = async (req, res, next) => {
   try {
@@ -104,6 +116,41 @@ export const updateProfilePic = async (req, res, next) => {
     res.json({ profile_pic });
   } catch (error) {
     next(genericError('Error updating profile picture: ' + error.message));
+  }
+};
+
+export const updateAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(missingFieldError(['file']));
+    }
+
+    const entity = await Entities.findByPk(req.user.nif_nipc);
+    if (!entity) return next(unauthorizedError('User not found'));
+
+    const previousFileName = entity.profile_pic;
+    const extension = extensionFromMime(req.file.mimetype);
+    const newFileName = `${entity.nif_nipc}_${Date.now()}.${extension}`;
+
+    await minioClient.putObject(AVATAR_BUCKET, newFileName, req.file.buffer, {
+      'Content-Type': req.file.mimetype,
+    });
+
+    await entity.update({ profile_pic: newFileName });
+
+    if (previousFileName && previousFileName !== newFileName) {
+      await removeObjectSafe(AVATAR_BUCKET, previousFileName);
+    }
+
+    res.json({
+      success: true,
+      profile_pic: newFileName,
+      fileName: newFileName,
+      url: buildPublicUrl(AVATAR_BUCKET, newFileName),
+      bucket: AVATAR_BUCKET,
+    });
+  } catch (error) {
+    next(genericError('Error updating avatar: ' + error.message));
   }
 };
 
