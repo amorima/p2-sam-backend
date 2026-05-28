@@ -6,16 +6,17 @@ import {
 } from "../utils/need.utils.js";
 
 export const createNeed = async (req, res, next) => {
-  const { nif_nipc, estado, items } = req.body;
+  const { nif_nipc, estado, urgente, items } = req.body;
 
   try {
     const transaction = await Needs.sequelize.transaction();
 
     try {
       await ensureGoodsServicesForItems(items, transaction);
-      
+
       const needData = { nif_nipc };
       if (estado !== undefined) needData.estado = estado;
+      if (urgente !== undefined) needData.urgente = urgente;
       
       const need = await Needs.create(needData, { transaction });
       const createdItems = await NeedItem.bulkCreate(buildNeedItems(items, need.id_pedido), {
@@ -124,7 +125,7 @@ export const deleteNeed = async (req, res, next) => {
 
 export const createInstitutionNeed = async (req, res, next) => {
   const { nif_nipc } = req.params;
-  const { estado, items } = req.body;
+  const { estado, urgente, items } = req.body;
 
   // Validate nif_nipc format
   if (!/^\d{9}$/.test(nif_nipc)) {
@@ -140,9 +141,10 @@ export const createInstitutionNeed = async (req, res, next) => {
     const transaction = await Needs.sequelize.transaction();
     try {
       await ensureGoodsServicesForItems(items, transaction);
-      
+
       const needData = { nif_nipc };
       if (estado !== undefined) needData.estado = estado;
+      if (urgente !== undefined) needData.urgente = urgente;
       
       const need = await Needs.create(needData, { transaction });
       const createdItems = await NeedItem.bulkCreate(buildNeedItems(items, need.id_pedido), {
