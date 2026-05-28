@@ -2,6 +2,7 @@ import { Institutions, Entities, Locations, Contacts } from "../models/db.config
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
+import { sendRegistrationEmail } from "../utils/email.utils.js";
 
 export const createInstitution = async (req, res, next) => {
   const { location, entity, contacts, institution } = req.body;
@@ -53,6 +54,13 @@ export const createInstitution = async (req, res, next) => {
     );
 
     await transaction.commit();
+
+    sendRegistrationEmail({
+      email: entity.email_login,
+      nome_entidade: entityInstance.nome_entidade,
+      nif_nipc: entityInstance.nif_nipc,
+      role: "institution",
+    });
 
     const response = formatResponse({
       resource: {

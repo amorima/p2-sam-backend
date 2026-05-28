@@ -1,5 +1,6 @@
 import { Leads, Panels, Citizens, Lockers, NeedItem } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, conflictError, validationError } from "../utils/error.utils.js";
+import { sendPinEmail } from "../utils/email.utils.js";
 
 export const createLead = async (req, res, next) => {
   const { id_painel, nome_cidadao, contacto_cidadao, rgpd, id_pedido, id_item, pin_entrega, id_locker } = req.body;
@@ -82,6 +83,16 @@ export const createLead = async (req, res, next) => {
     );
 
     await transaction.commit();
+
+    sendPinEmail({
+      contacto_cidadao,
+      nome_cidadao,
+      item_pedido: needItem.tipo_bem_servico,
+      pin_entrega,
+      locker_nome: null,
+      data_expiracao: null,
+    });
+
     res.status(201).json(lead);
   } catch (e) {
     await transaction.rollback();
