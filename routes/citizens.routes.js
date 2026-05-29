@@ -5,7 +5,8 @@ import { verifyJWT, requireRoles} from "../middleware/auth.middleware.js";
 const router = express.Router();
 
 router.route("/")
-  .get(citizensController.getAllCitizens);
+  .get(citizensController.getAllCitizens)
+  .post(verifyJWT, requireRoles('admin'), citizensController.createCitizen);
 
 router.route("/:contacto")
   .get(citizensController.getCitizen)

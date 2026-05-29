@@ -134,6 +134,11 @@ app.use((err, req, res, next) => {
     });
 })
 
+import { verifyEmailTransport } from "./utils/email.utils.js";
+
 app.listen(PORT, HOST, () => {
     console.log(`Server running on http://${HOST}:${PORT}`);
+    // Validate SMTP credentials at startup (non-blocking) so email
+    // misconfiguration is visible in the logs instead of failing silently.
+    verifyEmailTransport();
 });

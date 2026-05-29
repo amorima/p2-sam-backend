@@ -1,16 +1,52 @@
 import nodemailer from "nodemailer";
 
+const EMAIL_HOST = process.env.EMAIL_HOST || "smtp-relay.brevo.com";
+const EMAIL_PORT = Number(process.env.EMAIL_PORT || 587);
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_SMTP_KEY = process.env.EMAIL_SMTP_KEY;
+
+// Surface misconfiguration early instead of failing silently inside sendMail.
+if (!EMAIL_USER || !EMAIL_SMTP_KEY) {
+  console.warn(
+    "[email] EMAIL_USER and/or EMAIL_SMTP_KEY are not set — emails will NOT be sent. " +
+      "Define them in the backend .env (Brevo SMTP credentials)."
+  );
+}
+
 const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
+  host: EMAIL_HOST,
+  port: EMAIL_PORT,
+  // Brevo uses STARTTLS on 587 (secure:false) and implicit TLS on 465 (secure:true).
+  secure: EMAIL_PORT === 465,
+  requireTLS: EMAIL_PORT !== 465,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_SMTP_KEY,
+    user: EMAIL_USER,
+    pass: EMAIL_SMTP_KEY,
   },
 });
 
 const FROM = process.env.EMAIL_FROM || "noreply@sam.pt";
+
+// Validate the SMTP connection/credentials at startup so failures are obvious.
+// Called from server.js; never throws (logs the result instead).
+export async function verifyEmailTransport() {
+  if (!EMAIL_USER || !EMAIL_SMTP_KEY) {
+    console.warn("[email] Skipping SMTP verification — credentials missing.");
+    return false;
+  }
+  try {
+    await transporter.verify();
+    console.log(`[email] SMTP transport ready (${EMAIL_HOST}:${EMAIL_PORT}, from=${FROM}).`);
+    return true;
+  } catch (e) {
+    console.error("[email] SMTP verification FAILED:", e?.response || e?.message || e);
+    console.error(
+      "[email] Common causes: wrong EMAIL_USER/EMAIL_SMTP_KEY, or the sender " +
+        `(${FROM}) is not a verified sender/domain in Brevo.`
+    );
+    return false;
+  }
+}
 
 // Shared layout wrapper
 function layout(content) {
@@ -170,8 +206,9 @@ export async function sendRegistrationEmail({ email, nome_entidade, nif_nipc, ro
       subject: `Bem-vindo ao SAM – Registo de ${roleLabel} concluído`,
       html: registrationTemplate({ nome_entidade, nif_nipc, role }),
     });
+    console.log(`[email] registration email sent to ${email}`);
   } catch (e) {
-    console.error("[email] registration send failed:", e?.message);
+    console.error("[email] registration send failed:", e?.response || e?.message || e);
   }
 }
 
@@ -186,7 +223,8 @@ export async function sendPinEmail({ contacto_cidadao, nome_cidadao, item_pedido
       subject: `SAM – PIN de levantamento: ${item_pedido}`,
       html: pinTemplate({ nome_cidadao, item_pedido, pin_entrega, locker_nome, data_expiracao }),
     });
+    console.log(`[email] pin email sent to ${contacto_cidadao}`);
   } catch (e) {
-    console.error("[email] pin send failed:", e?.message);
+    console.error("[email] pin send failed:", e?.response || e?.message || e);
   }
 }
