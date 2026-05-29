@@ -54,8 +54,14 @@ export const createLead = async (req, res, next) => {
       return next(validationError([{ id_item: "Item does not belong to provided pedido" }]));
     }
 
-    const existingLead = await Leads.findOne({ where: { id_item }, transaction });
-    if (existingLead) {
+    // Only an *active* lead (awaiting pickup or already delivered) reserves the
+    // item. An EXPIRADO lead frees the item back onto the panel, so we must
+    // allow a new lead for it — this matches the panel goods listing logic.
+    const activeLead = await Leads.findOne({
+      where: { id_item, estado: ["PENDENTE", "ENTREGUE"] },
+      transaction,
+    });
+    if (activeLead) {
       await transaction.rollback();
       return next(conflictError([{ id_item: "A lead already exists for this item" }]));
     }
