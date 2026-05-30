@@ -4,6 +4,9 @@ import { verifyJWT, requireRoles, adminOrSelf } from "../middleware/auth.middlew
 
 const router = express.Router();
 
+router.route("/:nif_nipc")
+  .delete(verifyJWT, adminOrSelf, entitiesController.deleteEntity);
+
 router.route("/:nif_nipc/block")
   .patch(verifyJWT, requireRoles("admin"), entitiesController.updateEntityBlocked);
 

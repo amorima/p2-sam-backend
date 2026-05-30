@@ -60,7 +60,7 @@ export const getAllNeeds = async (req, res, next) => {
 
 export const updateNeed = async (req, res, next) => {
   const { id_need } = req.params;
-  const { estado, items, nif_nipc } = req.body;
+  const { estado, items, nif_nipc, panelItemIds } = req.body;
   const updateData = {};
 
   if (estado !== undefined) updateData.estado = estado;
@@ -75,6 +75,18 @@ export const updateNeed = async (req, res, next) => {
     try {
       if (Object.keys(updateData).length) {
         await need.update(updateData, { transaction });
+      }
+
+      // Persist which items were allocated to the citizen panel during approval
+      // (publico = 1). The panel listing shows these regardless of distance.
+      if (Array.isArray(panelItemIds)) {
+        await NeedItem.update({ publico: 0 }, { where: { id_pedido: id_need }, transaction });
+        if (panelItemIds.length) {
+          await NeedItem.update(
+            { publico: 1 },
+            { where: { id_pedido: id_need, id_item: panelItemIds }, transaction }
+          );
+        }
       }
 
       let updatedItems = [];

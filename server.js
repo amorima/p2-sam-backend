@@ -42,6 +42,14 @@ const globalLimiter = rateLimit({
   max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
+  // The public kiosk panel pushes telemetry every 5s and fans the goods listing
+  // into several reads; exempt those high-frequency, low-risk endpoints so the
+  // panel is never throttled (it has no auth/login surface to brute force).
+  skip: (req) =>
+    req.path.startsWith('/telemetry')
+    || req.path.startsWith('/leads')
+    || req.path.startsWith('/needs')
+    || req.path.startsWith('/institutions'),
   message: { description: 'Demasiados pedidos. Tente novamente mais tarde.' }
 })
 
