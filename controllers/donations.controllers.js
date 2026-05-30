@@ -1,6 +1,7 @@
 import { Donations, FinancialLogs } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
 import { buildFinancialLogData } from "../utils/donation.utils.js";
+import { persistNotification, emitToAdmins, emitToUser } from "../utils/socket.js";
 
 export const createDonation = async (req, res, next) => {
   const { financial_log, anonimo, estado, ...donationData } = req.body;
@@ -19,6 +20,14 @@ export const createDonation = async (req, res, next) => {
         throw error;
       }
     }
+
+    persistNotification({
+      tipo: 'doacao_criada',
+      titulo: 'Nova Doação Registada',
+      corpo: `Uma nova doação foi criada`,
+      destinatario: 'admin',
+      payload: { id_doacao: donation.id_doacao }
+    }).then(emitToAdmins);
 
     res.status(201).json({ donation });
   } catch (e) {
@@ -61,6 +70,15 @@ export const updateDonation = async (req, res, next) => {
     if (!donation) return next(notFoundError("Donation", id_donation));
 
     await donation.update(updateData);
+    if (updateData.estado && donation.mecena_nif_nipc) {
+      persistNotification({
+        tipo: 'doacao_atualizada',
+        titulo: 'Doação Atualizada',
+        corpo: `O estado da sua doação foi alterado para "${updateData.estado}"`,
+        destinatario: donation.mecena_nif_nipc,
+        payload: { id_doacao: donation.id_doacao, estado: updateData.estado }
+      }).then(n => emitToUser(donation.mecena_nif_nipc, n));
+    }
     res.json({ donation });
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
@@ -115,6 +133,14 @@ export const createPatronDonation = async (req, res, next) => {
         throw error;
       }
     }
+
+    persistNotification({
+      tipo: 'doacao_criada',
+      titulo: 'Nova Doação de Mecenas',
+      corpo: `Mecenas ${nif_nipc} criou uma nova doação`,
+      destinatario: 'admin',
+      payload: { id_doacao: donation.id_doacao, mecena_nif_nipc: nif_nipc }
+    }).then(emitToAdmins);
 
     res.status(201).json({ donation });
   } catch (e) {

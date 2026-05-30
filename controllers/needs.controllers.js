@@ -4,6 +4,7 @@ import {
   buildNeedItems,
   ensureGoodsServicesForItems,
 } from "../utils/need.utils.js";
+import { persistNotification, emitToAdmins, emitToUser } from "../utils/socket.js";
 
 export const createNeed = async (req, res, next) => {
   const { nif_nipc, estado, urgente, items } = req.body;
@@ -99,6 +100,22 @@ export const updateNeed = async (req, res, next) => {
       }
 
       await transaction.commit();
+
+      // Notify the institution if estado changed (e.g. admin approved/rejected)
+      if (updateData.estado && need.nif_nipc) {
+        const estadoLabel = { ACEITE: 'aprovado', REJEITADO: 'rejeitado', PENDENTE: 'em análise' }[updateData.estado] ?? updateData.estado;
+        persistNotification({
+          tipo: 'pedido_atualizado',
+          titulo: 'Estado do Pedido Alterado',
+          corpo: `O seu pedido #${id_need} foi ${estadoLabel}`,
+          destinatario: need.nif_nipc,
+          payload: { id_pedido: Number(id_need), estado: updateData.estado }
+        }).then(n => {
+          emitToAdmins(n);
+          emitToUser(need.nif_nipc, n);
+        });
+      }
+
       res.json({ need, items: updatedItems.length ? updatedItems : undefined });
     } catch (error) {
       await transaction.rollback();
@@ -163,6 +180,15 @@ export const createInstitutionNeed = async (req, res, next) => {
         transaction,
       });
       await transaction.commit();
+
+      persistNotification({
+        tipo: 'pedido_criado',
+        titulo: 'Novo Pedido de Instituição',
+        corpo: `Instituição ${nif_nipc} criou um novo pedido`,
+        destinatario: 'admin',
+        payload: { id_pedido: need.id_pedido, nif_nipc }
+      }).then(emitToAdmins);
+
       res.status(201).json({ need, items: createdItems });
     } catch (error) {
       await transaction.rollback();

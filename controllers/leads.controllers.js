@@ -1,6 +1,7 @@
 import { Leads, Panels, Citizens, Lockers, NeedItem } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, conflictError, validationError } from "../utils/error.utils.js";
 import { sendPinEmail } from "../utils/email.utils.js";
+import { persistNotification, emitToAdmins } from "../utils/socket.js";
 
 export const createLead = async (req, res, next) => {
   const { id_painel, nome_cidadao, contacto_cidadao, rgpd, id_pedido, id_item, pin_entrega, id_locker } = req.body;
@@ -98,6 +99,14 @@ export const createLead = async (req, res, next) => {
       locker_nome: null,
       data_expiracao: null,
     });
+
+    persistNotification({
+      tipo: 'lead_criado',
+      titulo: 'Nova Solicitação no Painel',
+      corpo: `${nome_cidadao} solicitou "${needItem.tipo_bem_servico}"`,
+      destinatario: 'admin',
+      payload: { id_lead: lead.id_lead, contacto_cidadao, item: needItem.tipo_bem_servico }
+    }).then(emitToAdmins);
 
     res.status(201).json(lead);
   } catch (e) {
@@ -212,6 +221,15 @@ export const validateLead = async (req, res, next) => {
     }
 
     await lead.update({ estado: "ENTREGUE" });
+
+    persistNotification({
+      tipo: 'lead_entregue',
+      titulo: 'Bem Entregue',
+      corpo: `Lead #${id_lead} marcada como entregue (PIN validado)`,
+      destinatario: 'admin',
+      payload: { id_lead: Number(id_lead) }
+    }).then(emitToAdmins);
+
     res.json(lead);
   } catch (e) {
     next(genericError("Error validating lead"));

@@ -1,8 +1,10 @@
+import { createServer } from "node:http";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import "dotenv/config";
+import { initSocket } from "./utils/socket.js";
 
 const app = express();
 
@@ -146,9 +148,10 @@ app.use((err, req, res, next) => {
 
 import { verifyEmailTransport } from "./utils/email.utils.js";
 
-app.listen(PORT, HOST, () => {
+const httpServer = createServer(app);
+initSocket(httpServer, allowedOrigins);
+
+httpServer.listen(PORT, HOST, () => {
     console.log(`Server running on http://${HOST}:${PORT}`);
-    // Validate SMTP credentials at startup (non-blocking) so email
-    // misconfiguration is visible in the logs instead of failing silently.
     verifyEmailTransport();
 });

@@ -1,5 +1,6 @@
 import { LockersTelemetry } from "../models/db.config.js";
 import { genericError, notFoundError } from "../utils/error.utils.js";
+import { persistNotification, emitToAdmins, emitTelemetryUpdate } from "../utils/socket.js";
 
 export const createLockerTelemetry = async (req, res, next) => {
   try {
@@ -7,6 +8,18 @@ export const createLockerTelemetry = async (req, res, next) => {
       ...req.body,
       timestamp: req.body.timestamp ?? new Date(),
     });
+    emitTelemetryUpdate(telemetry.toObject());
+
+    if (req.body.aviso) {
+      persistNotification({
+        tipo: 'telemetria_alerta',
+        titulo: 'Alerta de Telemetria',
+        corpo: `Painel reportou: ${req.body.aviso}`,
+        destinatario: 'admin',
+        payload: { locker_id: req.body.locker_id, aviso: req.body.aviso }
+      }).then(emitToAdmins);
+    }
+
     res.status(201).json(telemetry);
   } catch (e) {
     console.error("[telemetry] create error:", e);
