@@ -77,3 +77,34 @@ export const markAllAsRead = async (req, res, next) => {
     next(genericError("Error marking all notifications as read"));
   }
 };
+
+export const deleteNotification = async (req, res, next) => {
+  const { id } = req.params;
+  const { role, nif_nipc } = req.user;
+  try {
+    const notification = await Notifications.findById(id);
+    if (!notification) return next(notFoundError("Notification", id));
+    // Only allow deleting own notifications (or admin deletes any admin notification)
+    const isOwner = role === 'admin'
+      ? notification.destinatario === 'admin'
+      : notification.destinatario === nif_nipc;
+    if (!isOwner) return next(notFoundError("Notification", id));
+    await notification.deleteOne();
+    res.status(204).send();
+  } catch (e) {
+    next(genericError("Error deleting notification"));
+  }
+};
+
+export const deleteReadNotifications = async (req, res, next) => {
+  const { role, nif_nipc } = req.user;
+  try {
+    const query = role === 'admin'
+      ? { destinatario: 'admin', lida: true }
+      : { destinatario: nif_nipc, lida: true };
+    const result = await Notifications.deleteMany(query);
+    res.json({ deleted: result.deletedCount });
+  } catch (e) {
+    next(genericError("Error deleting read notifications"));
+  }
+};

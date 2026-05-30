@@ -12,7 +12,9 @@ router.route('/')
 // Authenticated endpoints — specific paths before /:id to avoid ambiguity
 router.get('/me/inbox', verifyJWT, notificationsController.getMyNotifications);
 router.patch('/me/read-all', verifyJWT, notificationsController.markAllAsRead);
+router.delete('/me/read-all', verifyJWT, notificationsController.deleteReadNotifications);
 router.patch('/:id/read', verifyJWT, notificationsController.markAsRead);
+router.delete('/:id', verifyJWT, notificationsController.deleteNotification);
 router.get('/:id', notificationsController.getNotification);
 
 export default router;
