@@ -54,13 +54,7 @@ export function initSocket(httpServer, allowedOrigins) {
         io.to('room:admin').emit('telemetry:update', record.toObject());
 
         if (data.aviso) {
-          const notif = await persistNotification({
-            tipo: 'telemetria_alerta',
-            titulo: 'Alerta de Telemetria',
-            corpo: `Painel reportou: ${data.aviso}`,
-            destinatario: 'admin',
-            payload: { locker_id: data.locker_id, aviso: data.aviso }
-          });
+          const notif = await upsertTelemetryNotification({ aviso: data.aviso, locker_id: data.locker_id });
           io.to('room:admin').emit('notification:new', notif);
         }
 
@@ -102,6 +96,42 @@ export async function persistNotification({ tipo, titulo, corpo, destinatario, p
     return doc.toObject();
   } catch (e) {
     console.error('[ws] persistNotification error:', e);
+    return null;
+  }
+}
+
+/**
+ * Upsert the single global telemetry-alert notification.
+ * Instead of creating a new record per alert, we keep one notification
+ * that accumulates recent alerts in payload.alerts[]. The notification
+ * is marked unread on every new alert so it bubbles back to the top.
+ */
+export async function upsertTelemetryNotification({ aviso, locker_id }) {
+  try {
+    const existing = await Notifications.findOne({ tipo: 'telemetria_alerta', destinatario: 'admin' });
+    const prevAlerts = existing?.payload?.alerts ?? [];
+    const alerts = [
+      ...prevAlerts.slice(-49),
+      { aviso, locker_id, timestamp: new Date().toISOString() }
+    ];
+    const count = alerts.length;
+    const doc = await Notifications.findOneAndUpdate(
+      { tipo: 'telemetria_alerta', destinatario: 'admin' },
+      {
+        $set: {
+          titulo: `Alertas de Telemetria (${count})`,
+          corpo: `Último: ${aviso}`,
+          data_envio: new Date(),
+          estado_envio: 'enviada',
+          lida: false,
+          payload: { alerts }
+        }
+      },
+      { upsert: true, new: true }
+    );
+    return doc.toObject();
+  } catch (e) {
+    console.error('[ws] upsertTelemetryNotification error:', e);
     return null;
   }
 }
