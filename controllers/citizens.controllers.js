@@ -86,26 +86,31 @@ export const updateCitizenBlocked = async (req, res, next) => {
     return next(validationError([{ reason: "Reason must be filled for a valid suspension" }]));
   }
 
+  const newReason = willBlock ? String(reason).trim() : null;
+
   try {
     const citizen = await Citizens.findOne({ where: { contacto } });
     if (!citizen) return next(notFoundError("Citizen", contacto));
 
-    citizen.blocked = Number(willBlock);
-    citizen.reason = willBlock ? String(reason).trim() : null;
-    await citizen.save();
+
+    await Citizens.update(
+      { blocked: Number(willBlock), reason: newReason },
+      { where: { contacto } }
+    );
 
     res.json({
       nome: citizen.nome,
-      contacto: citizen.contacto,
-      blocked: Boolean(citizen.blocked),
-      reason: citizen.reason ?? null,
+      contacto,
+      blocked: willBlock,
+      reason: newReason,
     });
   } catch (e) {
-    console.error("[citizens] block error:", e);
+    console.error("[citizens] block error:", e?.original?.sqlMessage || e?.message, e);
     if (e?.name === "SequelizeValidationError" || e?.name === "SequelizeUniqueConstraintError") {
       return next(sequelizeValidationError(e.errors));
     }
-    next(genericError("Error updating citizen blocked"));
+    // Surface the underlying cause on this admin-only endpoint to aid diagnosis.
+    next(genericError("Error updating citizen blocked: " + (e?.original?.sqlMessage || e?.message || "unknown")));
   }
 };
 

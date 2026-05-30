@@ -34,10 +34,12 @@ app.use(cors(corsOptions))
 app.options(/.*/, cors(corsOptions))
 app.use(express.json());
 
-// Global rate limit
+// Global rate limit. Generous because legitimate clients are chatty: the public
+// kiosk panel pushes telemetry on an interval and fans out the goods listing
+// into several backend reads, and the admin dashboard auto-refreshes.
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { description: 'Demasiados pedidos. Tente novamente mais tarde.' }
