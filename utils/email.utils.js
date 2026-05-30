@@ -9,7 +9,7 @@ const EMAIL_SMTP_KEY = process.env.EMAIL_SMTP_KEY;
 if (!EMAIL_USER || !EMAIL_SMTP_KEY) {
   console.warn(
     "[email] EMAIL_USER and/or EMAIL_SMTP_KEY are not set — emails will NOT be sent. " +
-      "Define them in the backend .env (Brevo SMTP credentials)."
+      "Define them in the backend .env (Brevo SMTP credentials).",
   );
 }
 
@@ -36,13 +36,18 @@ export async function verifyEmailTransport() {
   }
   try {
     await transporter.verify();
-    console.log(`[email] SMTP transport ready (${EMAIL_HOST}:${EMAIL_PORT}, from=${FROM}).`);
+    console.log(
+      `[email] SMTP transport ready (${EMAIL_HOST}:${EMAIL_PORT}, from=${FROM}).`,
+    );
     return true;
   } catch (e) {
-    console.error("[email] SMTP verification FAILED:", e?.response || e?.message || e);
+    console.error(
+      "[email] SMTP verification FAILED:",
+      e?.response || e?.message || e,
+    );
     console.error(
       "[email] Common causes: wrong EMAIL_USER/EMAIL_SMTP_KEY, or the sender " +
-        `(${FROM}) is not a verified sender/domain in Brevo.`
+        `(${FROM}) is not a verified sender/domain in Brevo.`,
     );
     return false;
   }
@@ -144,10 +149,22 @@ function registrationTemplate({ nome_entidade, nif_nipc, role }) {
   `);
 }
 
-function pinTemplate({ nome_cidadao, item_pedido, pin_entrega, locker_nome, data_expiracao }) {
+function pinTemplate({
+  nome_cidadao,
+  item_pedido,
+  pin_entrega,
+  locker_nome,
+  data_expiracao,
+}) {
   const expiry = data_expiracao
-    ? new Date(data_expiracao).toLocaleString("pt-PT", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
-    : "48 horas após este email";
+    ? new Date(data_expiracao).toLocaleString("pt-PT", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "7 dias após este email";
 
   return layout(`
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a202c;">O seu artigo está reservado 📦</h1>
@@ -183,7 +200,7 @@ function pinTemplate({ nome_cidadao, item_pedido, pin_entrega, locker_nome, data
           <p style="margin:0;font-size:13px;color:#744210;line-height:1.5;">
             ⚠️ <strong>Este código é pessoal e intransmissível.</strong>
             Apresente-o no locker para confirmar o levantamento.
-            A reserva expira em <strong>${expiry}</strong> — após esse prazo o artigo regressa ao painel.
+            A reserva expira em <strong>${expiry}</strong>, após esse prazo o artigo regressa ao painel.
           </p>
         </td>
       </tr>
@@ -196,7 +213,12 @@ function pinTemplate({ nome_cidadao, item_pedido, pin_entrega, locker_nome, data
 }
 
 // Send registration welcome email (institution or patron)
-export async function sendRegistrationEmail({ email, nome_entidade, nif_nipc, role }) {
+export async function sendRegistrationEmail({
+  email,
+  nome_entidade,
+  nif_nipc,
+  role,
+}) {
   if (!email) return;
   const roleLabel = role === "institution" ? "Instituição" : "Mecenas";
   try {
@@ -208,12 +230,22 @@ export async function sendRegistrationEmail({ email, nome_entidade, nif_nipc, ro
     });
     console.log(`[email] registration email sent to ${email}`);
   } catch (e) {
-    console.error("[email] registration send failed:", e?.response || e?.message || e);
+    console.error(
+      "[email] registration send failed:",
+      e?.response || e?.message || e,
+    );
   }
 }
 
 // Send PIN delivery email to citizen after creating a lead
-export async function sendPinEmail({ contacto_cidadao, nome_cidadao, item_pedido, pin_entrega, locker_nome, data_expiracao }) {
+export async function sendPinEmail({
+  contacto_cidadao,
+  nome_cidadao,
+  item_pedido,
+  pin_entrega,
+  locker_nome,
+  data_expiracao,
+}) {
   // Only attempt if contacto looks like an email address
   if (!contacto_cidadao || !contacto_cidadao.includes("@")) return;
   try {
@@ -221,7 +253,13 @@ export async function sendPinEmail({ contacto_cidadao, nome_cidadao, item_pedido
       from: `"SAM – Serviço de Apoio Municipal" <${FROM}>`,
       to: contacto_cidadao,
       subject: `SAM – PIN de levantamento: ${item_pedido}`,
-      html: pinTemplate({ nome_cidadao, item_pedido, pin_entrega, locker_nome, data_expiracao }),
+      html: pinTemplate({
+        nome_cidadao,
+        item_pedido,
+        pin_entrega,
+        locker_nome,
+        data_expiracao,
+      }),
     });
     console.log(`[email] pin email sent to ${contacto_cidadao}`);
   } catch (e) {
