@@ -1,5 +1,6 @@
-import { verifyToken, extractToken } from '../utils/auth.utils.js';
+import { verifyToken, extractToken, hashApiToken } from '../utils/auth.utils.js';
 import { unauthorizedError, forbiddenError } from '../utils/error.utils.js';
+import { ApiTokens } from '../models/db.config.js';
 
 // Trusted Nuxt-proxy bypass: accepts X-Internal-Key + X-User-Nif/Role headers
 export const verifyInternalOrJWT = (req, res, next) => {
@@ -15,14 +16,23 @@ export const verifyInternalOrJWT = (req, res, next) => {
   verifyJWT(req, res, next);
 };
 
-export const verifyJWT = (req, res, next) => {
+export const verifyJWT = async (req, res, next) => {
   try {
     const token = extractToken(req.headers.authorization);
+    if (!token) return next(unauthorizedError('Authorization token is missing'));
 
-    if (!token) {
-      return next(unauthorizedError('Authorization token is missing'));
+    // Permanent API token path
+    if (token.startsWith('sam_')) {
+      const hash = hashApiToken(token);
+      const apiToken = await ApiTokens.findOne({ token_hash: hash, revoked: false });
+      if (!apiToken) return next(unauthorizedError('Invalid or revoked API token'));
+      // Fire-and-forget last_used update
+      ApiTokens.updateOne({ _id: apiToken._id }, { last_used_at: new Date() }).catch(() => {});
+      req.user = { nif_nipc: apiToken.nif_nipc, role: apiToken.role };
+      return next();
     }
 
+    // Standard JWT path
     const decoded = verifyToken(token);
     req.user = decoded;
     next();

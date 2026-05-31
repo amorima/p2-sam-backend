@@ -74,6 +74,8 @@ import NotificationsModels from "./notifications.models.js";
 const Notifications = NotificationsModels(mongoose);
 import RefreshTokensModel from "./refresh_tokens.models.js";
 const RefreshTokens = RefreshTokensModel(mongoose);
+import ApiTokensModel from "./api_tokens.models.js";
+const ApiTokens = ApiTokensModel(mongoose);
 
 // Define Relations
 Entities.belongsToMany(Locations, {
@@ -228,4 +230,4 @@ try{
     console.error("Error synching the models (non-fatal, continuing):", e.message)
 }
 
-export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications, RefreshTokens };
+export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications, RefreshTokens, ApiTokens };

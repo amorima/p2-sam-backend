@@ -76,3 +76,22 @@ export const verifyRefreshToken = (token) => {
 export const generateTokenFamily = () => {
   return crypto.randomBytes(16).toString('hex');
 };
+
+// ── Permanent API tokens ──────────────────────────────────────────────────────
+
+const API_TOKEN_HMAC_SECRET = process.env.API_TOKEN_SECRET || JWT_SECRET;
+
+/**
+ * Generate a permanent API token: `sam_` prefix + 64 hex chars.
+ */
+export const generateApiToken = () => {
+  return `sam_${crypto.randomBytes(32).toString('hex')}`;
+};
+
+/**
+ * Hash a permanent API token with HMAC-SHA256 for secure storage.
+ * Deterministic — same token always yields the same hash.
+ */
+export const hashApiToken = (token) => {
+  return crypto.createHmac('sha256', API_TOKEN_HMAC_SECRET).update(token).digest('hex');
+};

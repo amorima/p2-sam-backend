@@ -93,6 +93,7 @@ import notificationsRoutes from "./routes/notifications.routes.js";
 import logsRoutes from "./routes/logs.routes.js";
 import telemetryRoutes from "./routes/telemetry.routes.js";
 import goodsServicesRoutes from "./routes/goods_services.routes.js";
+import apiTokensRoutes from "./routes/api_tokens.routes.js";
 
 // Apply Router
 app.use('/auth/login', loginLimiter);
@@ -115,6 +116,7 @@ app.use('/telemetry', telemetryRoutes);
 app.use('/goods-services', goodsServicesRoutes);
 
 app.use("/api/upload", minioRoutes);
+app.use('/api-tokens', apiTokensRoutes);
 
 // Unknown Routes Handler
 app.use((req, res, next) => {
