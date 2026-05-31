@@ -58,6 +58,7 @@ export const getAllNeeds = async (req, res, next) => {
     const needs = await Needs.findAll({ include: [NeedItem] });
     res.json({ needs });
   } catch (e) {
+    console.error('[needs] getAllNeeds error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching needs"));
   }
 };

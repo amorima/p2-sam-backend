@@ -222,6 +222,17 @@ try {
     console.warn("Could not ensure leads columns nullable (non-fatal):", e.message);
 }
 
+// Ensure pedido_bens_e_servicos.publico exists — sync({alter:true}) can silently
+// skip this if the FK on tipo_bem_servico causes Sequelize to bail before adding it.
+try {
+    await sequelize.query('ALTER TABLE pedido_bens_e_servicos ADD COLUMN publico TINYINT NULL');
+    console.log("pedido_bens_e_servicos.publico column added");
+} catch (e) {
+    if (!e.original?.sqlMessage?.includes('Duplicate column name')) {
+        console.warn("Could not add pedido_bens_e_servicos.publico (non-fatal):", e.message);
+    }
+}
+
 // Sycronizing
 try{
     await sequelize.sync({alter: true})
