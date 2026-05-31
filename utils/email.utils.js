@@ -167,9 +167,9 @@ function pinTemplate({
     : "7 dias após este email";
 
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a202c;">O seu artigo está reservado 📦</h1>
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a202c;">Aguardamos a sua doação</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#4a5568;">
-      Olá <strong>${nome_cidadao}</strong>, a sua reserva foi registada com sucesso no SAM.
+      Olá <strong>${nome_cidadao}</strong>, a sua intenção de doação foi registada com sucesso no SAM.
     </p>
 
     <!-- Item -->
