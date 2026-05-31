@@ -19,6 +19,11 @@ export default (sequelize, DataTypes) => sequelize.define("need", {
     allowNull: false,
     defaultValue: false,
    },
+   data: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+   },
   },
   {
    tableName: "pedido",
