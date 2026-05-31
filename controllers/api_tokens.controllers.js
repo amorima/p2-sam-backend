@@ -15,12 +15,12 @@ export const listTokens = async (req, res, next) => {
 
 export const createToken = async (req, res, next) => {
   try {
-    const { label } = req.body
+    const { label } = (req.body ?? {})
 
     // Revoke all existing tokens for this user — one active token per entity
     await ApiTokens.updateMany(
       { nif_nipc: req.user.nif_nipc, revoked: false },
-      { revoked: true, revoked_at: new Date() }
+      { $set: { revoked: true, revoked_at: new Date() } }
     )
 
     const plainToken = generateApiToken()

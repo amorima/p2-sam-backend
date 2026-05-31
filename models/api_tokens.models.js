@@ -1,5 +1,5 @@
 export default (mongoose) => {
-  const ApiToken = mongoose.model('ApiToken', new mongoose.Schema({
+  const schema = new mongoose.Schema({
     nif_nipc: { type: String, required: true, index: true },
     role: { type: String, required: true },
     token_hash: { type: String, required: true, unique: true, index: true },
@@ -8,6 +8,6 @@ export default (mongoose) => {
     last_used_at: { type: Date, default: null },
     revoked: { type: Boolean, default: false, index: true },
     revoked_at: { type: Date, default: null }
-  }, { timestamps: true }))
-  return ApiToken
+  }, { timestamps: true })
+  return mongoose.models.ApiToken ?? mongoose.model('ApiToken', schema)
 }
