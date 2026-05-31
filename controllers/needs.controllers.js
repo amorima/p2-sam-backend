@@ -32,7 +32,10 @@ export const createNeed = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.status === 422 && e.errors) {
+      next(e);
     } else {
+      console.error("[needs] create error:", e?.message, e?.original?.sqlMessage ?? '');
       next(genericError("Error creating need"));
     }
   }
@@ -197,7 +200,11 @@ export const createInstitutionNeed = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.status === 422 && e.errors) {
+      // ValidationError from ensureGoodsServicesForItems — propagate as 422
+      next(e);
     } else {
+      console.error("[institutions/needs] create error:", e?.message, e?.original?.sqlMessage ?? '', e?.errors ?? '');
       next(genericError("Error creating institution need"));
     }
   }
