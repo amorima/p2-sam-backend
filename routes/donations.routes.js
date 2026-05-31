@@ -7,11 +7,11 @@ import { verifyJWT, requireRoles } from "../middleware/auth.middleware.js";
 const router = express.Router();
 
 router.route('/')
-    .get(donationsController.getAllDonations)
-    .post(verifyJWT,requireRoles('admin'),validateDonationCreate, donationsController.createDonation)
+    .get(verifyJWT, requireRoles('admin'), donationsController.getAllDonations)
+    .post(verifyJWT, requireRoles('admin'), validateDonationCreate, donationsController.createDonation)
 router.route('/:id_donation')
-    .get(donationsController.getDonation)
-    .patch(verifyJWT,requireRoles('admin'),donationsController.updateDonation)
-    .delete(verifyJWT,requireRoles('admin'),donationsController.deleteDonation)
+    .get(verifyJWT, requireRoles('admin'), donationsController.getDonation)
+    .patch(verifyJWT, requireRoles('admin'), donationsController.updateDonation)
+    .delete(verifyJWT, requireRoles('admin'), donationsController.deleteDonation)
 
 export default router;

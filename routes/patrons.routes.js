@@ -8,17 +8,17 @@ import { verifyJWT, requireRoles, adminOrSelf } from "../middleware/auth.middlew
 const router = express.Router();
 
 router.route('/')
-    .get(patronsController.getAllPatrons)
-    .post(patronsController.createPatron)
+    .get(verifyJWT, requireRoles('admin'), patronsController.getAllPatrons)
+    .post(patronsController.createPatron)                                          // public: auto-registo
 router.route('/:nif_nipc')
-    .get(patronsController.getPatron)
+    .get(verifyJWT, adminOrSelf, patronsController.getPatron)
     .patch(verifyJWT, adminOrSelf, patronsController.updatePatron)
     .delete(verifyJWT, adminOrSelf, patronsController.deletePatron)
 router.route('/:nif_nipc/donations')
-    .get(getAllPatronDonation)
+    .get(verifyJWT, adminOrSelf, getAllPatronDonation)
     .post(verifyJWT, adminOrSelf, validatePatronDonationCreate, createPatronDonation)
 router.route('/:nif_nipc/donations/:id_donation')
-    .get(getPatronDonation)
+    .get(verifyJWT, adminOrSelf, getPatronDonation)
     .patch(verifyJWT, adminOrSelf, updatePatronDonation)
     .delete(verifyJWT, adminOrSelf, deletePatronDonation)
 

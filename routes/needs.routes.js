@@ -7,10 +7,10 @@ import { verifyJWT, requireRoles } from "../middleware/auth.middleware.js";
 const router = express.Router();
 
 router.route('/')
-    .get(needsController.getAllNeeds)
+    .get(needsController.getAllNeeds)                                               // público: painel municipal usa sem auth
     .post(verifyJWT, requireRoles('admin'), validateNeedCreate, needsController.createNeed)
 router.route('/:id_need')
-    .get(needsController.getNeed)
+    .get(verifyJWT, needsController.getNeed)
     .patch(verifyJWT, requireRoles('admin'), validateNeedUpdate, needsController.updateNeed)
     .delete(verifyJWT, requireRoles('admin'), needsController.deleteNeed)
 

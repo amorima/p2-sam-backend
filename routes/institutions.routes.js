@@ -8,17 +8,17 @@ import { verifyJWT, requireRoles, adminOrSelf } from "../middleware/auth.middlew
 const router = express.Router();
 
 router.route('/')
-    .get(institutionsController.getAllInstitutions)
-    .post(institutionsController.createInstitution)
+    .get(institutionsController.getAllInstitutions)                                  // público: painel municipal usa sem auth
+    .post(institutionsController.createInstitution)                                 // público: auto-registo
 router.route('/:nif_nipc')
-    .get(institutionsController.getInstitution)
+    .get(verifyJWT, adminOrSelf, institutionsController.getInstitution)
     .patch(verifyJWT, adminOrSelf, institutionsController.updateInstitution)
     .delete(verifyJWT, adminOrSelf, institutionsController.deleteInstitution)
 router.route('/:nif_nipc/needs')
-    .get(getAllInstitutionNeeds)
+    .get(verifyJWT, adminOrSelf, getAllInstitutionNeeds)
     .post(verifyJWT, adminOrSelf, validateInstitutionNeedCreate, createInstitutionNeed)
 router.route('/:nif_nipc/needs/:id_need')
-    .get(getInstitutionNeed)
+    .get(verifyJWT, adminOrSelf, getInstitutionNeed)
     .patch(verifyJWT, adminOrSelf, validateNeedUpdate, updateInstitutionNeed)
     .delete(verifyJWT, adminOrSelf, deleteInstitutionNeed)
 
