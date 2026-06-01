@@ -222,34 +222,6 @@ try {
     console.warn("Could not ensure leads columns nullable (non-fatal):", e.message);
 }
 
-// Ensure pedido_bens_e_servicos.publico exists — sync({alter:true}) can silently
-// skip this if the FK on tipo_bem_servico causes Sequelize to bail before adding it.
-try {
-    await sequelize.query('ALTER TABLE pedido_bens_e_servicos ADD COLUMN publico TINYINT NULL');
-    console.log("pedido_bens_e_servicos.publico column added");
-} catch (e) {
-    if (!e.original?.sqlMessage?.includes('Duplicate column name')) {
-        console.warn("Could not add pedido_bens_e_servicos.publico (non-fatal):", e.message);
-    }
-}
-
-// Ensure pedido.urgente / pedido.data exist — the seed (data-generator) only
-// creates nif_nipc/estado/id_pedido, and sync({alter:true}) bails (see above)
-// before adding them. Without these the `need` model's SELECT in getAllNeeds
-// references columns that don't exist → "Unknown column" → 500.
-const ensurePedidoColumn = async (sql, label) => {
-    try {
-        await sequelize.query(sql);
-        console.log(`${label} column ensured`);
-    } catch (e) {
-        if (!e.original?.sqlMessage?.includes('Duplicate column name')) {
-            console.warn(`Could not add ${label} (non-fatal):`, e.message);
-        }
-    }
-};
-await ensurePedidoColumn('ALTER TABLE pedido ADD COLUMN urgente TINYINT NOT NULL DEFAULT 0', 'pedido.urgente');
-await ensurePedidoColumn('ALTER TABLE pedido ADD COLUMN data DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP', 'pedido.data');
-
 // Sycronizing
 try{
     await sequelize.sync({alter: true})
