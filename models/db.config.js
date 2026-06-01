@@ -233,6 +233,23 @@ try {
     }
 }
 
+// Ensure pedido.urgente / pedido.data exist — the seed (data-generator) only
+// creates nif_nipc/estado/id_pedido, and sync({alter:true}) bails (see above)
+// before adding them. Without these the `need` model's SELECT in getAllNeeds
+// references columns that don't exist → "Unknown column" → 500.
+const ensurePedidoColumn = async (sql, label) => {
+    try {
+        await sequelize.query(sql);
+        console.log(`${label} column ensured`);
+    } catch (e) {
+        if (!e.original?.sqlMessage?.includes('Duplicate column name')) {
+            console.warn(`Could not add ${label} (non-fatal):`, e.message);
+        }
+    }
+};
+await ensurePedidoColumn('ALTER TABLE pedido ADD COLUMN urgente TINYINT NOT NULL DEFAULT 0', 'pedido.urgente');
+await ensurePedidoColumn('ALTER TABLE pedido ADD COLUMN data DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP', 'pedido.data');
+
 // Sycronizing
 try{
     await sequelize.sync({alter: true})
