@@ -281,6 +281,7 @@ export const getAllBusiness = async (req, res, next) => {
       _links: { create: { href: "/business", method: "POST" } },
     });
   } catch (e) {
+    console.error('[business] getAll error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Erro fetching businesses"));
   }
 };

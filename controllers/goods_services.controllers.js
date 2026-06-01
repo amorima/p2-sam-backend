@@ -51,6 +51,7 @@ export const getAllGoodsServices = async (req, res, next) => {
       })),
     });
   } catch (e) {
+    console.error('[goods-services] getAll error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching goods and services"));
   }
 };

@@ -230,6 +230,7 @@ export const getAllInstitutions = async (req, res, next) => {
       _links: { create: { href: "/institutions", method: "POST" } },
     });
   } catch (e) {
+    console.error('[institutions] getAll error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Erro fetching institutions"));
   }
 };
