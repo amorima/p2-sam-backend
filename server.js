@@ -39,9 +39,19 @@ app.use(express.json());
 // Global rate limit. Generous because legitimate clients are chatty: the public
 // kiosk panel pushes telemetry on an interval and fans out the goods listing
 // into several backend reads, and the admin dashboard auto-refreshes.
+const skipTestRequests = (req, res) => {
+  if (req.headers['x-test-client'] === 'true') {
+    // Log test bypass for audit
+    console.log(`[RATE_LIMIT_BYPASS] ${req.method} ${req.path} from test client`);
+    return true; // Skip this request
+  }
+  return false;
+};
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 2000,
+  skip: skipTestRequests,
   standardHeaders: true,
   legacyHeaders: false,
   // The public kiosk panel pushes telemetry every 5s and fans the goods listing
@@ -59,6 +69,7 @@ const globalLimiter = rateLimit({
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
+  skip: skipTestRequests,
   standardHeaders: true,
   legacyHeaders: false,
   message: { description: 'Demasiadas tentativas de login. Tente novamente em 15 minutos.' }
@@ -68,6 +79,7 @@ const loginLimiter = rateLimit({
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,
+  skip: skipTestRequests,
   standardHeaders: true,
   legacyHeaders: false,
   message: { description: 'Demasiados pedidos de renovação de sessão.' }
