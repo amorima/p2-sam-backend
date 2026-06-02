@@ -108,9 +108,9 @@ import goodsServicesRoutes from "./routes/goods_services.routes.js";
 import apiTokensRoutes from "./routes/api_tokens.routes.js";
 
 // Apply Router
-app.use('/auth/login', loginLimiter);
-app.use('/auth/refresh', refreshLimiter);
-app.use('/auth', authRoutes);
+app.use('/users/login', loginLimiter);
+app.use('/users/refresh', refreshLimiter);
+app.use('/users', authRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/business', businessRoutes);
 app.use('/donations', donationsRoutes);
