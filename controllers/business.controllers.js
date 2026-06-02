@@ -117,6 +117,8 @@ export const createBusiness = async (req, res, next) => {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
       next(conflictError([{ message: e.message }]));
+    } else if (e.status && e.status < 500) {
+      next(e);
     } else {
       next(genericError("Error Creating Business"));
     }
@@ -205,6 +207,8 @@ export const updateBusiness = async (req, res, next) => {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
       next(conflictError([{ message: e.message }]));
+    } else if (e.status && e.status < 500) {
+      next(e);
     } else {
       next(genericError("Error updating business"));
     }
