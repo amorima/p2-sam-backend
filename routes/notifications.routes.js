@@ -1,12 +1,12 @@
 import express from "express";
 import * as notificationsController from "../controllers/notifications.controllers.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";
+import { verifyInternalOrJWT, verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 router.route('/')
-    .get(verifyJWT, notificationsController.getAllNotification)
-    .post(verifyJWT, notificationsController.createNotification);
+    .get(verifyInternalOrJWT, notificationsController.getAllNotification)
+    .post(verifyInternalOrJWT, notificationsController.createNotification);
 
 // Authenticated endpoints — specific paths before /:id to avoid ambiguity
 router.get('/me/inbox', verifyJWT, notificationsController.getMyNotifications);
