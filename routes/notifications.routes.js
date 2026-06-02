@@ -4,10 +4,9 @@ import { verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// Public legacy endpoints
 router.route('/')
-    .get(notificationsController.getAllNotification)
-    .post(notificationsController.createNotification);
+    .get(verifyJWT, notificationsController.getAllNotification)
+    .post(verifyJWT, notificationsController.createNotification);
 
 // Authenticated endpoints — specific paths before /:id to avoid ambiguity
 router.get('/me/inbox', verifyJWT, notificationsController.getMyNotifications);
