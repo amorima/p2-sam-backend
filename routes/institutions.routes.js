@@ -3,12 +3,12 @@ import express from "express";
 import * as institutionsController from "../controllers/institutions.controllers.js";
 import { createInstitutionNeed, getInstitutionNeed, getAllInstitutionNeeds, updateInstitutionNeed, deleteInstitutionNeed} from "../controllers/needs.controllers.js";
 import { validateInstitutionNeedCreate, validateNeedUpdate } from "../middleware/needs.middleware.js";
-import { verifyJWT, requireRoles, adminOrSelf } from "../middleware/auth.middleware.js"
+import { verifyInternalOrJWT, verifyJWT, requireRoles, adminOrSelf } from "../middleware/auth.middleware.js"
 
 const router = express.Router();
 
 router.route('/')
-    .get(institutionsController.getAllInstitutions)                                  // público: painel municipal usa sem auth
+    .get(verifyInternalOrJWT, institutionsController.getAllInstitutions)
     .post(institutionsController.createInstitution)                                 // público: auto-registo
 router.route('/:nif_nipc')
     .get(verifyJWT, adminOrSelf, institutionsController.getInstitution)

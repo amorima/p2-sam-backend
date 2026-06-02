@@ -1,13 +1,14 @@
 import express from "express";
 
 import * as telemetryController from "../controllers/telemetry.controllers.js";
+import { verifyInternalOrJWT } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 router.route('/')
-    .get(telemetryController.getAllLockersTelemetry)
-    .post(telemetryController.createLockerTelemetry)
+    .get(verifyInternalOrJWT, telemetryController.getAllLockersTelemetry)
+    .post(verifyInternalOrJWT, telemetryController.createLockerTelemetry)
 router.route('/:id')
-    .get(telemetryController.getLockerTelemetry)
+    .get(verifyInternalOrJWT, telemetryController.getLockerTelemetry)
 
 export default router;
