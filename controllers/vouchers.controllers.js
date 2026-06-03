@@ -27,7 +27,7 @@ export const getAllVouchers = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows: items } = await Vouchers.findAndCountAll({ limit, offset });
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/vouchers', limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/vouchers', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching vouchers"));
   }

@@ -8,6 +8,7 @@ import "dotenv/config";
 import { initSocket } from "./utils/socket.js";
 
 const app = express();
+app.set('trust proxy', 1);
 
 const PORT = process.env.PORT;
 const HOST = process.env.HOST;

@@ -6,7 +6,7 @@ export const getAllCitizens = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows: items } = await Citizens.findAndCountAll({ limit, offset });
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/citizens', limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/citizens', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching citizens"));
   }

@@ -17,7 +17,7 @@ export const getAllFinancialLogs = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows: items } = await FinancialLogs.findAndCountAll({ limit, offset });
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/logs/financials', limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/logs/financials', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching financial logs"));
   }
@@ -36,7 +36,7 @@ export const getAllInteractionLogs = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows: items } = await InteractionLogs.findAndCountAll({ limit, offset });
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/logs/interactions', limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/logs/interactions', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching interaction logs"));
   }

@@ -48,7 +48,7 @@ export const getAllOffers = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows: items } = await Offers.findAndCountAll({ limit, offset });
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/offers', limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/offers', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching offers"));
   }
@@ -184,7 +184,7 @@ export const getAllBusinessOffers = async (req, res, next) => {
     const { count: total, rows: items } = await Offers.findAndCountAll({
       where: { negocio_nif_nipc: nif_nipc }, limit, offset
     });
-    res.json({ items, total, limit, offset, links: buildPageLinks(`/api/business/${nif_nipc}/offers`, limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks(`/business/${nif_nipc}/offers`, limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching business offers"));
   }

@@ -49,7 +49,7 @@ export const getAllGoodsServices = async (req, res, next) => {
       offset
     });
     const items = rows.map((g) => ({ tipo_bem_servico: g.tipo_bem_servico, tipo_bem: g.tipo_bem }));
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/goods-services', limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/goods-services', limit, offset, total) });
   } catch (e) {
     console.error('[goods-services] getAll error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching goods and services"));

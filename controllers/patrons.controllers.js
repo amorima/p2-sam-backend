@@ -130,7 +130,7 @@ export const getAllPatrons = async (req, res, next) => {
       total,
       limit,
       offset,
-      links: buildPageLinks('/api/patrons', limit, offset, total),
+      links: buildPageLinks('/patrons', limit, offset, total),
       _links: { create: { href: "/patrons", method: "POST" } }
     });
   } catch (e) {

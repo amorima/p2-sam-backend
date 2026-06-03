@@ -287,7 +287,7 @@ export const getAllBusiness = async (req, res, next) => {
       total,
       limit,
       offset,
-      links: buildPageLinks('/api/business', limit, offset, total),
+      links: buildPageLinks('/business', limit, offset, total),
       _links: { create: { href: "/business", method: "POST" } }
     });
   } catch (e) {

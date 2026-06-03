@@ -57,7 +57,7 @@ export const getAllDonations = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows } = await Donations.findAndCountAll({ limit, offset });
-    res.json({ items: rows, total, limit, offset, links: buildPageLinks('/api/donations', limit, offset, total) });
+    res.json({ items: rows, total, limit, offset, links: buildPageLinks('/donations', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching donations"));
   }
@@ -186,7 +186,7 @@ export const getAllPatronDonation = async (req, res, next) => {
     const { count: total, rows } = await Donations.findAndCountAll({
       where: { mecena_nif_nipc: nif_nipc }, limit, offset
     });
-    res.json({ items: rows, total, limit, offset, links: buildPageLinks(`/api/patrons/${nif_nipc}/donations`, limit, offset, total) });
+    res.json({ items: rows, total, limit, offset, links: buildPageLinks(`/patrons/${nif_nipc}/donations`, limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching patron donations"));
   }

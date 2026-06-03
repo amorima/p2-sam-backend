@@ -9,9 +9,6 @@ const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
  * Middleware that serves from server cache when available, otherwise
  * fetches from DB and stores the result. Also sets HTTP Cache-Control
  * so the client can cache the response for `duration` seconds.
- *
- * visibility: 'public'  — browser + shared caches (CDNs, proxies) may cache
- *             'private' — browser only (default; correct for auth-protected routes)
  */
 export const setCache = (duration, key, visibility = 'private') => (req, res, next) => {
   const cacheKey = key || req.originalUrl;
@@ -26,15 +23,14 @@ export const setCache = (duration, key, visibility = 'private') => (req, res, ne
   console.log(`Cache miss → ${cacheKey}`);
 
   // Intercept res.json so the response body is stored before being sent.
-  // Only cache successful (2xx) responses — error responses must not be cached
-  // or the next request will receive the cached error instead of a real response.
-  res.originalJSON = res.json.bind(res);
-  res.json = (body) => {
-    if (res.statusCode >= 200 && res.statusCode < 300) {
+  const originalJson = res.json;
+  res.json = function (body) {
+    if (!res.headersSent && res.statusCode >= 200 && res.statusCode < 300) {
+      // Store the body in cache and set headers before calling the original res.json
       cache.set(cacheKey, body, duration);
       res.set("Cache-Control", `${visibility}, max-age=${duration}`);
     }
-    return res.originalJSON(body);
+    return originalJson.call(this, body);
   };
 
   next();
@@ -43,8 +39,6 @@ export const setCache = (duration, key, visibility = 'private') => (req, res, ne
 /**
  * deleteCache(prefix)
  * Middleware that removes all cached entries whose key starts with `prefix`.
- * Handles paginated endpoints where the key includes query params
- * (e.g. "/needs?limit=25&offset=0").
  */
 export const deleteCache = (prefix) => (req, res, next) => {
   console.log(`Cache invalidate → ${prefix}`);

@@ -50,7 +50,7 @@ export const getAllLockersTelemetry = async (req, res, next) => {
       LockersTelemetry.countDocuments({}),
       LockersTelemetry.find({}).sort({ timestamp: -1, _id: -1 }).skip(offset).limit(limit).lean()
     ]);
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/telemetry', limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/telemetry', limit, offset, total) });
   } catch (e) {
     console.error("[telemetry] list error:", e);
     next(genericError("Error fetching locker telemetry"));

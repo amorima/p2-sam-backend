@@ -232,7 +232,7 @@ export const getAllInstitutions = async (req, res, next) => {
       total,
       limit,
       offset,
-      links: buildPageLinks('/api/institutions', limit, offset, total),
+      links: buildPageLinks('/institutions', limit, offset, total),
       _links: { create: { href: "/institutions", method: "POST" } }
     });
   } catch (e) {

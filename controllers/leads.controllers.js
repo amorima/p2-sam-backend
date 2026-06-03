@@ -123,7 +123,7 @@ export const getAllLeads = async (req, res, next) => {
     const { count: total, rows } = await Leads.findAndCountAll({
       include: [Citizens, Panels, Lockers], limit, offset, distinct: true
     });
-    res.json({ items: rows, total, limit, offset, links: buildPageLinks('/api/leads', limit, offset, total) });
+    res.json({ items: rows, total, limit, offset, links: buildPageLinks('/leads', limit, offset, total) });
   } catch (e) {
     console.error("[leads] getAll error:", e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching leads"));

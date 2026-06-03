@@ -29,7 +29,7 @@ export const getAllNotification = async (req, res, next) => {
       Notifications.countDocuments({}),
       Notifications.find({}).sort({ data_envio: -1 }).skip(offset).limit(limit).lean()
     ]);
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/notifications', limit, offset, total) });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/notifications', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching notifications"));
   }
