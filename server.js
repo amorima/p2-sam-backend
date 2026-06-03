@@ -14,6 +14,8 @@ const HOST = process.env.HOST;
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3012',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3012',
   'https://sam.netdw.tech'
 ]
 
@@ -167,5 +169,7 @@ initSocket(httpServer, allowedOrigins);
 
 httpServer.listen(PORT, HOST, () => {
     console.log(`Server running on http://${HOST}:${PORT}`);
+    verifyEmailTransport();
+});{HOST}:${PORT}`);
     verifyEmailTransport();
 });

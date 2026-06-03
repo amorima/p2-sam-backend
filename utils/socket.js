@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { verifyToken } from './auth.utils.js';
+import { verifyToken, hashApiToken } from './auth.utils.js';
 import { Notifications, LockersTelemetry } from '../models/db.config.js';
 
 let io = null;
@@ -14,13 +14,31 @@ export function initSocket(httpServer, allowedOrigins) {
     transports: ['websocket', 'polling']
   });
 
-  // Authenticate socket connections via JWT; panels connect without token
-  io.use((socket, next) => {
+  // Authenticate socket connections via JWT or Permanent API Tokens; panels connect without token
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) {
       socket.role = 'panel';
       return next();
     }
+
+    // Support for Permanent API Tokens (sam_...)
+    if (token.startsWith('sam_')) {
+      try {
+        const { ApiTokens } = await import('../models/db.config.js');
+        const hash = hashApiToken(token);
+        const apiToken = await ApiTokens.findOne({ token_hash: hash, revoked: false });
+        if (!apiToken) return next(new Error('auth_error'));
+
+        socket.role = apiToken.role;
+        socket.nif = apiToken.nif_nipc;
+        return next();
+      } catch (e) {
+        return next(new Error('auth_error'));
+      }
+    }
+
+    // Standard JWT path
     try {
       socket.user = verifyToken(token);
       socket.role = socket.user.role;
@@ -35,10 +53,13 @@ export function initSocket(httpServer, allowedOrigins) {
     if (socket.role === 'admin') {
       socket.join('room:admin');
       console.log(`[ws] admin connected: ${socket.nif}`);
-    } else if (socket.nif) {
+    } 
+
+    // Everyone with a NIF joins their own room (including admins)
+    if (socket.nif) {
       socket.join(`room:user:${socket.nif}`);
-      console.log(`[ws] user connected: ${socket.nif} (${socket.role})`);
-    } else {
+      console.log(`[ws] ${socket.role} joined room:user:${socket.nif}`);
+    } else if (socket.role === 'panel') {
       socket.join('room:panel');
       console.log(`[ws] panel connected: ${socket.id}`);
     }
