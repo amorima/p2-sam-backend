@@ -50,12 +50,13 @@ export function initSocket(httpServer, allowedOrigins) {
   });
 
   io.on('connection', (socket) => {
+    // Admins join their special room
     if (socket.role === 'admin') {
       socket.join('room:admin');
       console.log(`[ws] admin connected: ${socket.nif}`);
     } 
 
-    // Everyone with a NIF joins their own room (including admins)
+    // Everyone with a NIF joins their own room (including admins, patrons, business, etc.)
     if (socket.nif) {
       socket.join(`room:user:${socket.nif}`);
       console.log(`[ws] ${socket.role} joined room:user:${socket.nif}`);
