@@ -53,14 +53,16 @@ const skipTestRequests = (req, res) => {
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 2000,
-  skip: skipTestRequests,
   standardHeaders: true,
   legacyHeaders: false,
   // The public kiosk panel pushes telemetry every 5s and fans the goods listing
   // into several reads; exempt those high-frequency, low-risk endpoints so the
   // panel is never throttled (it has no auth/login surface to brute force).
+  // Also exempt the socket.io path and test client bypass.
   skip: (req) =>
-    req.path.startsWith('/telemetry')
+    skipTestRequests(req)
+    || req.path.startsWith('/socket.io/')
+    || req.path.startsWith('/telemetry')
     || req.path.startsWith('/leads')
     || req.path.startsWith('/needs')
     || req.path.startsWith('/institutions'),
@@ -169,7 +171,5 @@ initSocket(httpServer, allowedOrigins);
 
 httpServer.listen(PORT, HOST, () => {
     console.log(`Server running on http://${HOST}:${PORT}`);
-    verifyEmailTransport();
-});{HOST}:${PORT}`);
     verifyEmailTransport();
 });
