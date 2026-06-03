@@ -1,5 +1,6 @@
 import { Business, Entities, Locations, Contacts, Offers } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
 import { ensureGoodsService } from "../utils/offer.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
@@ -253,36 +254,41 @@ export const getBusiness = async (req, res, next) => {
 };
 
 export const getAllBusiness = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const businesses = await Business.findAll({
-      include: entityInclude,
+    const { count: total, rows } = await Business.findAndCountAll({
+      include: entityInclude, limit, offset, distinct: true
     });
 
-    const bList = businesses.map((b) => {
-    const entity = b.Entity;
-        return formatResponse({
-            resource: {
-                nif_nipc: b.nif_nipc,
-                geo_latitude: b.geo_latitude,
-                geo_longitude: b.geo_longitude,
-                url_certidao_permanente: b.url_certidao_permanente,
-                inicio_atividade: b.inicio_atividade,
-            },
-            entity,
-            locations: entity?.locations,
-            contacts: entity?.Contacts,
-            links: {
-                self: { href: `/business/${b.nif_nipc}`, method: "GET" },
-                update: { href: `/business/${b.nif_nipc}`, method: "PATCH" },
-                delete: { href: `/business/${b.nif_nipc}`, method: "DELETE" },
-                postOffer: { href: `/business/${b.nif_nipc}/offers`, method: "POST" },
-            },
-        });
+    const items = rows.map((b) => {
+      const entity = b.Entity;
+      return formatResponse({
+        resource: {
+          nif_nipc: b.nif_nipc,
+          geo_latitude: b.geo_latitude,
+          geo_longitude: b.geo_longitude,
+          url_certidao_permanente: b.url_certidao_permanente,
+          inicio_atividade: b.inicio_atividade,
+        },
+        entity,
+        locations: entity?.locations,
+        contacts: entity?.Contacts,
+        links: {
+          self: { href: `/business/${b.nif_nipc}`, method: "GET" },
+          update: { href: `/business/${b.nif_nipc}`, method: "PATCH" },
+          delete: { href: `/business/${b.nif_nipc}`, method: "DELETE" },
+          postOffer: { href: `/business/${b.nif_nipc}/offers`, method: "POST" },
+        },
+      });
     });
 
     res.json({
-      data: bList,
-      _links: { create: { href: "/business", method: "POST" } },
+      items,
+      total,
+      limit,
+      offset,
+      links: buildPageLinks('/api/business', limit, offset, total),
+      _links: { create: { href: "/business", method: "POST" } }
     });
   } catch (e) {
     console.error('[business] getAll error:', e?.message, e?.original?.sqlMessage ?? '');

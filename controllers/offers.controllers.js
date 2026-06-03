@@ -1,5 +1,6 @@
 import { Offers, Business } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { ensureGoodsService } from "../utils/offer.utils.js";
 
 export const createOffer = async (req, res, next) => {
@@ -44,9 +45,10 @@ export const getOffer = async (req, res, next) => {
 };
 
 export const getAllOffers = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const offers = await Offers.findAll();
-    res.json({ offers });
+    const { count: total, rows: items } = await Offers.findAndCountAll({ limit, offset });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/offers', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching offers"));
   }
@@ -173,14 +175,16 @@ export const getBusinessOffer = async (req, res, next) => {
 export const getAllBusinessOffers = async (req, res, next) => {
   const { nif_nipc } = req.params;
 
-  // Validate nif_nipc format
   if (!/^\d{9}$/.test(nif_nipc)) {
     return next(unauthorizedError('Invalid entity identifier format'));
   }
 
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const offers = await Offers.findAll({ where: { negocio_nif_nipc: nif_nipc } });
-    res.json({ offers });
+    const { count: total, rows: items } = await Offers.findAndCountAll({
+      where: { negocio_nif_nipc: nif_nipc }, limit, offset
+    });
+    res.json({ items, total, limit, offset, links: buildPageLinks(`/api/business/${nif_nipc}/offers`, limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching business offers"));
   }

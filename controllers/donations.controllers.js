@@ -1,5 +1,6 @@
 import { Donations, FinancialLogs } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { buildFinancialLogData } from "../utils/donation.utils.js";
 import { persistNotification, emitToAdmins, emitToUser } from "../utils/socket.js";
 
@@ -53,9 +54,10 @@ export const getDonation = async (req, res, next) => {
 };
 
 export const getAllDonations = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const donations = await Donations.findAll();
-    res.json({ donations });
+    const { count: total, rows: items } = await Donations.findAndCountAll({ limit, offset });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/donations', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching donations"));
   }
@@ -175,14 +177,16 @@ export const getPatronDonation = async (req, res, next) => {
 export const getAllPatronDonation = async (req, res, next) => {
   const { nif_nipc } = req.params;
 
-  // Validate nif_nipc format
   if (!/^\d{9}$/.test(nif_nipc)) {
     return next(unauthorizedError('Invalid entity identifier format'));
   }
 
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const donations = await Donations.findAll({ where: { mecena_nif_nipc: nif_nipc } });
-    res.json({ donations });
+    const { count: total, rows: items } = await Donations.findAndCountAll({
+      where: { mecena_nif_nipc: nif_nipc }, limit, offset
+    });
+    res.json({ items, total, limit, offset, links: buildPageLinks(`/api/patrons/${nif_nipc}/donations`, limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching patron donations"));
   }

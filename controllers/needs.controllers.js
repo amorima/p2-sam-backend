@@ -1,5 +1,6 @@
 import { Needs, NeedItem } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import {
   buildNeedItems,
   ensureGoodsServicesForItems,
@@ -54,9 +55,12 @@ export const getNeed = async (req, res, next) => {
 };
 
 export const getAllNeeds = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const needs = await Needs.findAll({ include: [NeedItem] });
-    res.json({ needs });
+    const { count: total, rows: items } = await Needs.findAndCountAll({
+      include: [NeedItem], limit, offset, distinct: true
+    });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/needs', limit, offset, total) });
   } catch (e) {
     console.error('[needs] getAllNeeds error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching needs"));
@@ -234,14 +238,16 @@ export const getInstitutionNeed = async (req, res, next) => {
 export const getAllInstitutionNeeds = async (req, res, next) => {
   const { nif_nipc } = req.params;
 
-  // Validate nif_nipc format
   if (!/^\d{9}$/.test(nif_nipc)) {
     return next(unauthorizedError('Invalid entity identifier format'));
   }
 
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const needs = await Needs.findAll({ where: { nif_nipc }, include: [NeedItem] });
-    res.json({ needs });
+    const { count: total, rows: items } = await Needs.findAndCountAll({
+      where: { nif_nipc }, include: [NeedItem], limit, offset, distinct: true
+    });
+    res.json({ items, total, limit, offset, links: buildPageLinks(`/api/institutions/${nif_nipc}/needs`, limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching institution needs"));
   }

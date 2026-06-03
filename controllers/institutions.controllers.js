@@ -1,5 +1,6 @@
 import { Institutions, Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
 import { sendRegistrationEmail } from "../utils/email.utils.js";
@@ -200,12 +201,13 @@ export const getInstitution = async (req, res, next) => {
 };
 
 export const getAllInstitutions = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const institutions = await Institutions.findAll({
-      include: entityInclude,
+    const { count: total, rows } = await Institutions.findAndCountAll({
+      include: entityInclude, limit, offset, distinct: true
     });
 
-    const data = institutions.map((institution) => {
+    const items = rows.map((institution) => {
       const entity = institution.Entity;
       return formatResponse({
         resource: {
@@ -226,8 +228,12 @@ export const getAllInstitutions = async (req, res, next) => {
     });
 
     res.json({
-      data,
-      _links: { create: { href: "/institutions", method: "POST" } },
+      items,
+      total,
+      limit,
+      offset,
+      links: buildPageLinks('/api/institutions', limit, offset, total),
+      _links: { create: { href: "/institutions", method: "POST" } }
     });
   } catch (e) {
     console.error('[institutions] getAll error:', e?.message, e?.original?.sqlMessage ?? '');

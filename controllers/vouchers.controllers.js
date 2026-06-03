@@ -1,5 +1,6 @@
 import { Vouchers } from "../models/db.config.js";
 import { genericError, notFoundError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 
 export const createVoucher = async (req, res, next) => {
   try {
@@ -23,9 +24,10 @@ export const getVoucher = async (req, res, next) => {
 };
 
 export const getAllVouchers = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const vouchers = await Vouchers.findAll();
-    res.json(vouchers);
+    const { count: total, rows: items } = await Vouchers.findAndCountAll({ limit, offset });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/vouchers', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching vouchers"));
   }

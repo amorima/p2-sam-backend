@@ -1,6 +1,6 @@
 import { FinancialLogs, InteractionLogs } from "../models/db.config.js";
 import { genericError, notFoundError } from "../utils/error.utils.js";
-//
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 export const getFinancialLog = async (req, res, next) => {
   const { id } = req.params;
 
@@ -14,9 +14,10 @@ export const getFinancialLog = async (req, res, next) => {
 };
 
 export const getAllFinancialLogs = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const financialLogs = await FinancialLogs.findAll();
-    res.json(financialLogs);
+    const { count: total, rows: items } = await FinancialLogs.findAndCountAll({ limit, offset });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/logs/financials', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching financial logs"));
   }
@@ -32,9 +33,10 @@ export const createInteractionLog = async (req, res, next) => {
 };
 
 export const getAllInteractionLogs = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const interactionLogs = await InteractionLogs.findAll();
-    res.json(interactionLogs);
+    const { count: total, rows: items } = await InteractionLogs.findAndCountAll({ limit, offset });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/logs/interactions', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching interaction logs"));
   }

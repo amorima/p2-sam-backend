@@ -1,5 +1,6 @@
 import { Leads, Panels, Citizens, Lockers, NeedItem } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, conflictError, validationError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { sendPinEmail } from "../utils/email.utils.js";
 import { persistNotification, emitToAdmins } from "../utils/socket.js";
 
@@ -117,9 +118,12 @@ export const createLead = async (req, res, next) => {
 };
 
 export const getAllLeads = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const leads = await Leads.findAll({ include: [Citizens, Panels, Lockers] });
-    res.json(leads);
+    const { count: total, rows: items } = await Leads.findAndCountAll({
+      include: [Citizens, Panels, Lockers], limit, offset, distinct: true
+    });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/leads', limit, offset, total) });
   } catch (e) {
     console.error("[leads] getAll error:", e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching leads"));

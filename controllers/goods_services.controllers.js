@@ -1,5 +1,6 @@
 import { GoodsServices } from "../models/db.config.js";
 import { genericError, missingFieldError, notFoundError, conflictError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 
 export const createGoodsService = async (req, res, next) => {
   const { tipo_bem_servico, tipo_bem } = req.body;
@@ -37,19 +38,18 @@ export const deleteGoodsService = async (req, res, next) => {
 };
 
 export const getAllGoodsServices = async (req, res, next) => {
+  const { tipo_bem } = req.query;
+  const { limit, offset } = parsePagination(req.query);
+  const where = tipo_bem ? { tipo_bem } : undefined;
   try {
-    const { tipo_bem } = req.query;
-    const where = tipo_bem ? { tipo_bem } : undefined;
-    const items = await GoodsServices.findAll({
+    const { count: total, rows } = await GoodsServices.findAndCountAll({
       ...(where && { where }),
       order: [["tipo_bem", "ASC"], ["tipo_bem_servico", "ASC"]],
+      limit,
+      offset
     });
-    res.json({
-      data: items.map((g) => ({
-        tipo_bem_servico: g.tipo_bem_servico,
-        tipo_bem: g.tipo_bem,
-      })),
-    });
+    const items = rows.map((g) => ({ tipo_bem_servico: g.tipo_bem_servico, tipo_bem: g.tipo_bem }));
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/goods-services', limit, offset, total) });
   } catch (e) {
     console.error('[goods-services] getAll error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching goods and services"));

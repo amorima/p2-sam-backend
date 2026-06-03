@@ -1,5 +1,6 @@
 import { Patrons, Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
 import { sendRegistrationEmail } from "../utils/email.utils.js";
@@ -105,10 +106,11 @@ export const getPatron = async (req, res, next) => {
 };
 
 export const getAllPatrons = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const patrons = await Patrons.findAll({ include: entityInclude });
+    const { count: total, rows } = await Patrons.findAndCountAll({ include: entityInclude, limit, offset, distinct: true });
 
-    const data = patrons.map((patron) => {
+    const items = rows.map((patron) => {
       const entity = patron.Entity;
       return formatResponse({
         resource: { nif_nipc: patron.nif_nipc },
@@ -124,8 +126,12 @@ export const getAllPatrons = async (req, res, next) => {
     });
 
     res.json({
-      data,
-      _links: { create: { href: "/patrons", method: "POST" } },
+      items,
+      total,
+      limit,
+      offset,
+      links: buildPageLinks('/api/patrons', limit, offset, total),
+      _links: { create: { href: "/patrons", method: "POST" } }
     });
   } catch (e) {
     next(genericError("Erro fetching patrons"));

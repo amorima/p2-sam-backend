@@ -1,5 +1,6 @@
 import { Notifications } from "../models/db.config.js";
 import { genericError, notFoundError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 
 export const createNotification = async (req, res, next) => {
   try {
@@ -22,12 +23,13 @@ export const getNotification = async (req, res, next) => {
 };
 
 export const getAllNotification = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const notifications = await Notifications.find({})
-      .sort({ data_envio: -1 })
-      .limit(200)
-      .lean();
-    res.json(notifications);
+    const [total, items] = await Promise.all([
+      Notifications.countDocuments({}),
+      Notifications.find({}).sort({ data_envio: -1 }).skip(offset).limit(limit).lean()
+    ]);
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/notifications', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching notifications"));
   }

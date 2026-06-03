@@ -1,5 +1,6 @@
 import { LockersTelemetry } from "../models/db.config.js";
 import { genericError, notFoundError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { upsertTelemetryNotification, emitToAdmins, emitTelemetryUpdate } from "../utils/socket.js";
 
 export const createLockerTelemetry = async (req, res, next) => {
@@ -43,12 +44,13 @@ export const getLockerTelemetry = async (req, res, next) => {
 };
 
 export const getAllLockersTelemetry = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const telemetry = await LockersTelemetry.find({})
-      .sort({ timestamp: -1, _id: -1 })
-      .limit(1000)
-      .lean();
-    res.json(telemetry);
+    const [total, items] = await Promise.all([
+      LockersTelemetry.countDocuments({}),
+      LockersTelemetry.find({}).sort({ timestamp: -1, _id: -1 }).skip(offset).limit(limit).lean()
+    ]);
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/telemetry', limit, offset, total) });
   } catch (e) {
     console.error("[telemetry] list error:", e);
     next(genericError("Error fetching locker telemetry"));

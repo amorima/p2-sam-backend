@@ -1,10 +1,12 @@
 import { Citizens, Leads } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, sequelizeValidationError, validationError, conflictError } from "../utils/error.utils.js";
+import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 
 export const getAllCitizens = async (req, res, next) => {
+  const { limit, offset } = parsePagination(req.query);
   try {
-    const citizens = await Citizens.findAll();
-    res.json({ data: citizens });
+    const { count: total, rows: items } = await Citizens.findAndCountAll({ limit, offset });
+    res.json({ items, total, limit, offset, links: buildPageLinks('/api/citizens', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching citizens"));
   }
