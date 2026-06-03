@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import compression from "compression";
 import rateLimit from "express-rate-limit";
 import "dotenv/config";
 import { initSocket } from "./utils/socket.js";
@@ -36,6 +37,7 @@ const corsOptions = {
 app.use(helmet())
 app.use(cors(corsOptions))
 app.options(/.*/, cors(corsOptions))
+app.use(compression())
 app.use(express.json());
 
 // Global rate limit. Generous because legitimate clients are chatty: the public

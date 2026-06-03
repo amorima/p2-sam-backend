@@ -57,10 +57,10 @@ export const getNeed = async (req, res, next) => {
 export const getAllNeeds = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
-    const { count: total, rows: items } = await Needs.findAndCountAll({
+    const { count: total, rows } = await Needs.findAndCountAll({
       include: [NeedItem], limit, offset, distinct: true
     });
-    res.json({ items, total, limit, offset, links: buildPageLinks('/api/needs', limit, offset, total) });
+    res.json({ items: rows, total, limit, offset, links: buildPageLinks('/api/needs', limit, offset, total) });
   } catch (e) {
     console.error('[needs] getAllNeeds error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching needs"));
@@ -244,10 +244,10 @@ export const getAllInstitutionNeeds = async (req, res, next) => {
 
   const { limit, offset } = parsePagination(req.query);
   try {
-    const { count: total, rows: items } = await Needs.findAndCountAll({
+    const { count: total, rows } = await Needs.findAndCountAll({
       where: { nif_nipc }, include: [NeedItem], limit, offset, distinct: true
     });
-    res.json({ items, total, limit, offset, links: buildPageLinks(`/api/institutions/${nif_nipc}/needs`, limit, offset, total) });
+    res.json({ items: rows, total, limit, offset, links: buildPageLinks(`/api/institutions/${nif_nipc}/needs`, limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching institution needs"));
   }
