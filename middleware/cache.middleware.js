@@ -25,11 +25,15 @@ export const setCache = (duration, key, visibility = 'private') => (req, res, ne
 
   console.log(`Cache miss → ${cacheKey}`);
 
-  // Intercept res.json so the response body is stored before being sent
+  // Intercept res.json so the response body is stored before being sent.
+  // Only cache successful (2xx) responses — error responses must not be cached
+  // or the next request will receive the cached error instead of a real response.
   res.originalJSON = res.json.bind(res);
   res.json = (body) => {
-    cache.set(cacheKey, body, duration);
-    res.set("Cache-Control", `${visibility}, max-age=${duration}`);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      cache.set(cacheKey, body, duration);
+      res.set("Cache-Control", `${visibility}, max-age=${duration}`);
+    }
     return res.originalJSON(body);
   };
 
