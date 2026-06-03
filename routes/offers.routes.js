@@ -8,7 +8,7 @@ import { setCache, deleteCache } from "../middleware/cache.middleware.js";
 const router = express.Router();
 
 router.route('/')
-    .get(setCache(120), offersController.getAllOffers)
+    .get(setCache(120, null, 'public'), offersController.getAllOffers)
     .post(verifyJWT, requireRoles('admin'), validateOfferCreate, deleteCache('/offers'), offersController.createOffer)
 router.route('/:id_offer')
     .get(offersController.getOffer)

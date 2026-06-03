@@ -6,7 +6,7 @@ import { setCache, deleteCache } from "../middleware/cache.middleware.js";
 const router = express.Router();
 
 router.route("/")
-  .get(setCache(60), citizensController.getAllCitizens)
+  .get(setCache(60, null, 'public'), citizensController.getAllCitizens)
   .post(verifyJWT, requireRoles('admin'), deleteCache('/citizens'), citizensController.createCitizen);
 
 router.route("/:contacto")

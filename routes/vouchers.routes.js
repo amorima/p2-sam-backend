@@ -7,7 +7,7 @@ import { setCache, deleteCache } from "../middleware/cache.middleware.js";
 const router = express.Router();
 
 router.route('/')
-    .get(setCache(120), vouchersController.getAllVouchers)
+    .get(setCache(120, null, 'public'), vouchersController.getAllVouchers)
     .post(verifyJWT, requireRoles('admin'), deleteCache('/vouchers'), vouchersController.createVoucher)
 router.route('/:id')
     .get(vouchersController.getVoucher)

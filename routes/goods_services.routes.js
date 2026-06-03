@@ -5,7 +5,7 @@ import { setCache, deleteCache } from "../middleware/cache.middleware.js";
 
 const router = express.Router();
 
-router.get("/", setCache(300), goodsServicesController.getAllGoodsServices);
+router.get("/", setCache(300, null, 'public'), goodsServicesController.getAllGoodsServices);
 router.post("/", verifyJWT, requireRoles("admin"), deleteCache('/goods-services'), goodsServicesController.createGoodsService);
 router.delete("/:tipo_bem_servico", verifyJWT, requireRoles("admin"), deleteCache('/goods-services'), goodsServicesController.deleteGoodsService);
 
