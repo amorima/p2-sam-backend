@@ -121,7 +121,7 @@ export const getAllNeeds = async (req, res, next) => {
       });
       const ids = idRows.map((r) => r.id_pedido);
       const rows = ids.length
-        ? await Needs.findAll({ where: { id_pedido: ids }, include: [NeedItem], order: [["data", "DESC"]] })
+        ? await Needs.findAll({ where: { id_pedido: ids }, include: [NeedItem], order: [["id_pedido", "DESC"]] })
         : [];
       return res.json({ items: rows.map((r) => r.toJSON()), total, limit, offset, links: buildPageLinks('/needs', limit, offset, total) });
     }
@@ -138,7 +138,7 @@ export const getAllNeeds = async (req, res, next) => {
 
 export const updateNeed = async (req, res, next) => {
   const { id_need } = req.params;
-  const { estado, items, nif_nipc, panelItemIds } = req.body;
+  const { estado, items, nif_nipc, panelItemIds, businessMatches } = req.body;
   const updateData = {};
 
   if (estado !== undefined) updateData.estado = estado;
@@ -167,6 +167,22 @@ export const updateNeed = async (req, res, next) => {
         }
       }
 
+      // Persist business partner assignments made during approval.
+      if (Array.isArray(businessMatches) && businessMatches.length) {
+        for (const bm of businessMatches) {
+          if (!bm.id_item || !bm.negocio_nif) continue
+          await NeedItem.update(
+            {
+              match_negocio_nif: bm.negocio_nif,
+              match_negocio_nome: bm.negocio_nome ?? null,
+              match_negocio_estado: 'PENDENTE',
+              match_negocio_motivo: null
+            },
+            { where: { id_item: bm.id_item, id_pedido: id_need }, transaction }
+          )
+        }
+      }
+
       let updatedItems = [];
       if (items !== undefined) {
         await ensureGoodsServicesForItems(items, transaction);
@@ -177,6 +193,23 @@ export const updateNeed = async (req, res, next) => {
       }
 
       await transaction.commit();
+
+      // Notify each assigned business after the transaction is safe.
+      if (Array.isArray(businessMatches)) {
+        for (const bm of businessMatches) {
+          if (!bm.negocio_nif) continue
+          persistNotification({
+            tipo: 'business_match',
+            titulo: 'Novo pedido de parceria',
+            corpo: `Foi-lhe atribuído um item no pedido #${id_need}`,
+            destinatario: bm.negocio_nif,
+            payload: { id_pedido: Number(id_need), id_item: bm.id_item }
+          }).then(n => {
+            emitToAdmins(n)
+            emitToUser(bm.negocio_nif, n)
+          })
+        }
+      }
 
       // Notify the institution if estado changed (e.g. admin approved/rejected)
       if (updateData.estado && need.nif_nipc) {
