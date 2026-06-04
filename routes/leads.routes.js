@@ -11,6 +11,7 @@ router.route('/')
     .post(verifyInternalOrJWT, deleteCache('/leads'), leadsController.createLead)
 
 // Static routes must come before /:id_lead to avoid param capture
+router.get('/stats', verifyInternalOrJWT, setCache(15), leadsController.getLeadsStats)
 router.post('/validate', verifyJWT, requireRoles(['admin']), deleteCache('/leads'), leadsController.validateLead)
 
 router.route('/:id_lead')

@@ -68,6 +68,21 @@ const buildNeedSearch = (q) => {
   };
 };
 
+export const getNeedsStats = async (req, res, next) => {
+  try {
+    const [total, pendentes, aceites, urgentes] = await Promise.all([
+      Needs.count(),
+      Needs.count({ where: { estado: 'PENDENTE' } }),
+      Needs.count({ where: { estado: 'ACEITE' } }),
+      Needs.count({ where: { urgente: true, estado: 'PENDENTE' } })
+    ])
+    res.json({ total, pendentes, aceites, urgentes })
+  } catch (e) {
+    console.error('[needs] stats error:', e?.message)
+    next(genericError('Error fetching need stats'))
+  }
+}
+
 export const getAllNeeds = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   const search = buildNeedSearch(req.query.q);

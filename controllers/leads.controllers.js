@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Leads, Panels, Citizens, Lockers, NeedItem } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, conflictError, validationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
@@ -116,6 +117,29 @@ export const createLead = async (req, res, next) => {
     next(genericError("Error creating lead"));
   }
 };
+
+const LEAD_VALIDITY_MS = 168 * 3600 * 1000
+
+export const getLeadsStats = async (req, res, next) => {
+  try {
+    const now = Date.now()
+    const expiryThreshold = new Date(now - LEAD_VALIDITY_MS)
+    const expiringSoonThreshold = new Date(now - (LEAD_VALIDITY_MS - 24 * 3600 * 1000))
+
+    const [total, entregues, pendentes, expirados, expiraBreve] = await Promise.all([
+      Leads.count(),
+      Leads.count({ where: { estado: 'ENTREGUE' } }),
+      Leads.count({ where: { estado: 'PENDENTE', data: { [Op.gt]: expiryThreshold } } }),
+      Leads.count({ where: { estado: 'PENDENTE', data: { [Op.lte]: expiryThreshold } } }),
+      Leads.count({ where: { estado: 'PENDENTE', data: { [Op.gt]: expiryThreshold, [Op.lt]: expiringSoonThreshold } } })
+    ])
+
+    res.json({ total, entregues, pendentes, expirados, expiraBreve })
+  } catch (e) {
+    console.error('[leads] stats error:', e?.message)
+    next(genericError('Error fetching lead stats'))
+  }
+}
 
 export const getAllLeads = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
