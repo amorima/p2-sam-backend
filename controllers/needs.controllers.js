@@ -69,7 +69,25 @@ const buildNeedSearch = (q) => {
 };
 
 export const getNeedsStats = async (req, res, next) => {
+  const search = buildNeedSearch(req.query.q)
   try {
+    if (search) {
+      // Two-step: resolve matching ids first (same join strategy as getAllNeeds)
+      const { count: total, rows: idRows } = await Needs.findAndCountAll({
+        where: search,
+        include: [{ model: Institutions, required: true, attributes: [], include: [{ model: Entities, attributes: [] }] }],
+        attributes: ['id_pedido'],
+        subQuery: false
+      })
+      const ids = idRows.map(r => r.id_pedido)
+      if (!ids.length) return res.json({ total: 0, pendentes: 0, aceites: 0, urgentes: 0 })
+      const [pendentes, aceites, urgentes] = await Promise.all([
+        Needs.count({ where: { id_pedido: ids, estado: 'PENDENTE' } }),
+        Needs.count({ where: { id_pedido: ids, estado: 'ACEITE' } }),
+        Needs.count({ where: { id_pedido: ids, urgente: true, estado: 'PENDENTE' } })
+      ])
+      return res.json({ total, pendentes, aceites, urgentes })
+    }
     const [total, pendentes, aceites, urgentes] = await Promise.all([
       Needs.count(),
       Needs.count({ where: { estado: 'PENDENTE' } }),
@@ -99,7 +117,7 @@ export const getAllNeeds = async (req, res, next) => {
         limit,
         offset,
         subQuery: false,
-        order: [["data", "DESC"]],
+        order: [["id_pedido", "DESC"]],
       });
       const ids = idRows.map((r) => r.id_pedido);
       const rows = ids.length
@@ -109,7 +127,7 @@ export const getAllNeeds = async (req, res, next) => {
     }
 
     const { count: total, rows } = await Needs.findAndCountAll({
-      include: [NeedItem], limit, offset, distinct: true
+      include: [NeedItem], limit, offset, distinct: true, order: [["id_pedido", "DESC"]]
     });
     res.json({ items: rows.map(r => r.toJSON()), total, limit, offset, links: buildPageLinks('/needs', limit, offset, total) });
   } catch (e) {

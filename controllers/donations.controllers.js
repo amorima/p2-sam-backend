@@ -91,7 +91,7 @@ export const getAllDonations = async (req, res, next) => {
       offset,
       subQuery: false,
       distinct: true,
-      order: [["data", "DESC"]],
+      order: [["id_doacao", "DESC"]],
     });
     // toJSON() → plain objects: the included Sequelize instances must never be
     // passed raw through setCache (node-cache deep-clones into the TCP socket).
@@ -265,7 +265,7 @@ export const getAllPatronDonation = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows } = await Donations.findAndCountAll({
-      where: { mecena_nif_nipc: nif_nipc }, limit, offset
+      where: { mecena_nif_nipc: nif_nipc }, limit, offset, order: [["id_doacao", "DESC"]]
     });
     res.json({ items: rows, total, limit, offset, links: buildPageLinks(`/patrons/${nif_nipc}/donations`, limit, offset, total) });
   } catch (e) {
