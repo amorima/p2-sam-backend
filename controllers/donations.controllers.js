@@ -1,8 +1,35 @@
-import { Donations, FinancialLogs } from "../models/db.config.js";
+import { Op, fn, col, cast, where as sequelizeWhere } from "sequelize";
+import { Donations, FinancialLogs, Patrons, Entities } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { buildFinancialLogData } from "../utils/donation.utils.js";
 import { persistNotification, emitToAdmins, emitToUser } from "../utils/socket.js";
+
+// Join donations to their patron's entity so the donor name is searchable.
+// Always a LEFT JOIN (required:false) so donations without a patron row still list.
+const patronEntityInclude = [
+  {
+    model: Patrons,
+    required: false,
+    attributes: ["nif_nipc"],
+    include: [{ model: Entities, required: false, attributes: ["nif_nipc", "nome_entidade"] }],
+  },
+];
+
+// Build a case-insensitive WHERE across donor name, NIF and transaction value.
+// Returns undefined when there is no search term.
+const buildDonationSearch = (q) => {
+  const term = String(q ?? "").trim();
+  if (!term) return undefined;
+  const like = `%${term}%`;
+  return {
+    [Op.or]: [
+      { mecena_nif_nipc: { [Op.like]: like } },
+      { "$patron.Entity.nome_entidade$": { [Op.like]: like } },
+      sequelizeWhere(cast(col("donation.valor_transacao"), "CHAR"), { [Op.like]: like }),
+    ],
+  };
+};
 
 export const createDonation = async (req, res, next) => {
   const { financial_log, anonimo, estado, ...donationData } = req.body;
@@ -55,11 +82,65 @@ export const getDonation = async (req, res, next) => {
 
 export const getAllDonations = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
+  const search = buildDonationSearch(req.query.q);
   try {
-    const { count: total, rows } = await Donations.findAndCountAll({ limit, offset });
-    res.json({ items: rows, total, limit, offset, links: buildPageLinks('/donations', limit, offset, total) });
+    const { count: total, rows } = await Donations.findAndCountAll({
+      where: search,
+      include: patronEntityInclude,
+      limit,
+      offset,
+      subQuery: false,
+      distinct: true,
+      order: [["data", "DESC"]],
+    });
+    // toJSON() → plain objects: the included Sequelize instances must never be
+    // passed raw through setCache (node-cache deep-clones into the TCP socket).
+    res.json({ items: rows.map((r) => r.toJSON()), total, limit, offset, links: buildPageLinks('/donations', limit, offset, total) });
   } catch (e) {
+    console.error('[donations] getAll error:', e?.message, e?.original?.sqlMessage ?? '');
     next(genericError("Error fetching donations"));
+  }
+};
+
+// Aggregate totals for the dashboard cards, independent of pagination and
+// honouring the same search term so the cards reflect the filtered set.
+export const getDonationStats = async (req, res, next) => {
+  const search = buildDonationSearch(req.query.q);
+  try {
+    const grouped = await Donations.findAll({
+      where: search,
+      // Join only to satisfy the name search; select NO joined columns so the
+      // GROUP BY stays valid under only_full_group_by. Omit entirely when no search.
+      include: search
+        ? [{ model: Patrons, required: false, attributes: [], include: [{ model: Entities, required: false, attributes: [] }] }]
+        : [],
+      attributes: [
+        "estado",
+        [fn("COUNT", col("donation.id_doacao")), "n"],
+        [fn("SUM", col("donation.valor_transacao")), "soma"],
+      ],
+      group: ["donation.estado"],
+      subQuery: false,
+      raw: true,
+    });
+
+    const stats = { total: 0, totalAceite: 0, aceites: 0, pendentes: 0, rejeitadas: 0 };
+    for (const row of grouped) {
+      const n = Number(row.n) || 0;
+      stats.total += n;
+      if (row.estado === "ACEITE") {
+        stats.aceites = n;
+        stats.totalAceite = Number(row.soma) || 0;
+      } else if (row.estado === "PENDENTE") {
+        stats.pendentes = n;
+      } else if (row.estado === "REJEITADO") {
+        stats.rejeitadas = n;
+      }
+    }
+    res.json(stats);
+  } catch (e) {
+    console.error('[donations] stats error:', e?.message, e?.original?.sqlMessage ?? '');
+    next(genericError("Error fetching donation stats"));
   }
 };
 

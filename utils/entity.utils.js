@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Entities, Locations, Contacts } from "../models/db.config.js";
 
 export const formatLocation = (location) => ({
@@ -133,3 +134,25 @@ export const entityInclude = [
     ],
   },
 ];
+
+// Server-side search for entity-backed lists (institutions, business, patrons).
+// Returns the WHERE + include to spread into findAndCountAll. When a term is
+// present the Entity join is made required (INNER JOIN) so the nested
+// `$Entity.*$` conditions actually filter; pagination stays correct via
+// distinct:true (validated: the hasMany locations/contacts don't multiply the
+// limited set). Searches NIF, entity name and login email, case-insensitively.
+export const buildEntitySearch = (q) => {
+  const term = String(q ?? "").trim();
+  if (!term) return { where: undefined, include: entityInclude };
+  const like = `%${term}%`;
+  return {
+    where: {
+      [Op.or]: [
+        { nif_nipc: { [Op.like]: like } },
+        { "$Entity.nome_entidade$": { [Op.like]: like } },
+        { "$Entity.email_login$": { [Op.like]: like } },
+      ],
+    },
+    include: [{ ...entityInclude[0], required: true }],
+  };
+};

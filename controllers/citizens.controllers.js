@@ -1,11 +1,16 @@
+import { Op } from "sequelize";
 import { Citizens, Leads } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, sequelizeValidationError, validationError, conflictError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 
 export const getAllCitizens = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
+  const q = String(req.query.q ?? "").trim();
+  const where = q
+    ? { [Op.or]: [{ nome: { [Op.like]: `%${q}%` } }, { contacto: { [Op.like]: `%${q}%` } }] }
+    : undefined;
   try {
-    const { count: total, rows: items } = await Citizens.findAndCountAll({ limit, offset });
+    const { count: total, rows: items } = await Citizens.findAndCountAll({ where, limit, offset });
     res.json({ items, total, limit, offset, links: buildPageLinks('/citizens', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching citizens"));

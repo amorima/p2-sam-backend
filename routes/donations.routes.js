@@ -10,6 +10,8 @@ const router = express.Router();
 router.route('/')
     .get(verifyJWT, requireRoles('admin'), setCache(60), donationsController.getAllDonations)
     .post(verifyJWT, requireRoles('admin'), validateDonationCreate, deleteCache('/donations'), donationsController.createDonation)
+// Static route must precede /:id_donation so "stats" isn't captured as an id.
+router.get('/stats', verifyJWT, requireRoles('admin'), setCache(60), donationsController.getDonationStats)
 router.route('/:id_donation')
     .get(verifyJWT, requireRoles('admin'), donationsController.getDonation)
     .patch(verifyJWT, requireRoles('admin'), deleteCache('/donations'), donationsController.updateDonation)

@@ -1,4 +1,5 @@
-import { Needs, NeedItem } from "../models/db.config.js";
+import { Op } from "sequelize";
+import { Needs, NeedItem, Institutions, Entities } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import {
@@ -54,9 +55,44 @@ export const getNeed = async (req, res, next) => {
   }
 };
 
+// Build the WHERE for searching needs by institution NIF or name.
+const buildNeedSearch = (q) => {
+  const term = String(q ?? "").trim();
+  if (!term) return null;
+  const like = `%${term}%`;
+  return {
+    [Op.or]: [
+      { nif_nipc: { [Op.like]: like } },
+      { "$institution.Entity.nome_entidade$": { [Op.like]: like } },
+    ],
+  };
+};
+
 export const getAllNeeds = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
+  const search = buildNeedSearch(req.query.q);
   try {
+    if (search) {
+      // Two-step: the institution-name search is a 2-level join that Sequelize
+      // can't hoist into the auto-subquery forced by the hasMany NeedItem +
+      // limit. Resolve the matching ids first (belongsTo joins only, no hasMany
+      // → subQuery:false is safe), then hydrate those needs with their items.
+      const { count: total, rows: idRows } = await Needs.findAndCountAll({
+        where: search,
+        include: [{ model: Institutions, required: true, attributes: [], include: [{ model: Entities, attributes: [] }] }],
+        attributes: ["id_pedido"],
+        limit,
+        offset,
+        subQuery: false,
+        order: [["data", "DESC"]],
+      });
+      const ids = idRows.map((r) => r.id_pedido);
+      const rows = ids.length
+        ? await Needs.findAll({ where: { id_pedido: ids }, include: [NeedItem], order: [["data", "DESC"]] })
+        : [];
+      return res.json({ items: rows.map((r) => r.toJSON()), total, limit, offset, links: buildPageLinks('/needs', limit, offset, total) });
+    }
+
     const { count: total, rows } = await Needs.findAndCountAll({
       include: [NeedItem], limit, offset, distinct: true
     });

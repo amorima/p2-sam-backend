@@ -17,10 +17,10 @@ router.route('/:nif_nipc')
     .delete(verifyJWT, adminOrSelf, deleteCache('/institutions'), institutionsController.deleteInstitution)
 router.route('/:nif_nipc/needs')
     .get(verifyJWT, adminOrSelf, setCache(30), getAllInstitutionNeeds)
-    .post(verifyJWT, adminOrSelf, validateInstitutionNeedCreate, deleteCache('/needs'), deleteCache('/institutions'), createInstitutionNeed)
+    .post(verifyJWT, adminOrSelf, validateInstitutionNeedCreate, deleteCache('/needs'), deleteCache('/institutions'), deleteCache('/goods-services'), createInstitutionNeed)
 router.route('/:nif_nipc/needs/:id_need')
     .get(verifyJWT, adminOrSelf, getInstitutionNeed)
-    .patch(verifyJWT, adminOrSelf, validateNeedUpdate, deleteCache('/needs'), updateInstitutionNeed)
+    .patch(verifyJWT, adminOrSelf, validateNeedUpdate, deleteCache('/needs'), deleteCache('/goods-services'), updateInstitutionNeed)
     .delete(verifyJWT, adminOrSelf, deleteCache('/needs'), deleteInstitutionNeed)
 
 export default router;

@@ -9,10 +9,10 @@ const router = express.Router();
 
 router.route('/')
     .get(verifyInternalOrJWT, setCache(30), needsController.getAllNeeds)
-    .post(verifyJWT, requireRoles('admin'), validateNeedCreate, deleteCache('/needs'), needsController.createNeed)
+    .post(verifyJWT, requireRoles('admin'), validateNeedCreate, deleteCache('/needs'), deleteCache('/goods-services'), needsController.createNeed)
 router.route('/:id_need')
     .get(verifyJWT, needsController.getNeed)
-    .patch(verifyJWT, requireRoles('admin'), validateNeedUpdate, deleteCache('/needs'), needsController.updateNeed)
+    .patch(verifyJWT, requireRoles('admin'), validateNeedUpdate, deleteCache('/needs'), deleteCache('/goods-services'), needsController.updateNeed)
     .delete(verifyJWT, requireRoles('admin'), deleteCache('/needs'), needsController.deleteNeed)
 
 export default router;

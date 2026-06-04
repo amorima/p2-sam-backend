@@ -1,7 +1,7 @@
 import { Business, Entities, Locations, Contacts, Offers } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
-import { formatResponse, entityInclude, syncEntityRelations } from "../utils/entity.utils.js";
+import { formatResponse, entityInclude, syncEntityRelations, buildEntitySearch } from "../utils/entity.utils.js";
 import { ensureGoodsService } from "../utils/offer.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
 
@@ -256,9 +256,10 @@ export const getBusiness = async (req, res, next) => {
 
 export const getAllBusiness = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
+  const { where, include } = buildEntitySearch(req.query.q);
   try {
     const { count: total, rows } = await Business.findAndCountAll({
-      include: entityInclude, limit, offset, distinct: true
+      where, include, limit, offset, distinct: true
     });
 
     const items = rows.map((b) => {
