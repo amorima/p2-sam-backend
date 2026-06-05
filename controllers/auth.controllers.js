@@ -7,17 +7,32 @@ import {
   verifyRefreshToken,
   generateTokenFamily,
 } from "../utils/auth.utils.js";
-import { genericError, unauthorizedError, forbiddenError, missingFieldError, validationError } from "../utils/error.utils.js";
-import { minioClient, buildPublicUrl, removeObjectSafe, removeAllWithPrefix } from "../utils/minio.utils.js";
+import {
+  genericError,
+  unauthorizedError,
+  forbiddenError,
+  missingFieldError,
+  validationError,
+} from "../utils/error.utils.js";
+import {
+  minioClient,
+  buildPublicUrl,
+  removeObjectSafe,
+  removeAllWithPrefix,
+} from "../utils/minio.utils.js";
 
 const AVATAR_BUCKET = "avatar";
 
 const extensionFromMime = (mime) => {
   switch (mime) {
-    case "image/jpeg": return "jpg";
-    case "image/png": return "png";
-    case "image/gif": return "gif";
-    default: return "bin";
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/gif":
+      return "gif";
+    default:
+      return "bin";
   }
 };
 
@@ -26,24 +41,24 @@ export const login = async (req, res, next) => {
     const { email_login, nif_nipc, password } = req.body;
 
     if ((!email_login && !nif_nipc) || !password) {
-      return next(missingFieldError(['email_login or nif_nipc', 'password']));
+      return next(missingFieldError(["email_login or nif_nipc", "password"]));
     }
 
     const where = nif_nipc ? { nif_nipc } : { email_login };
     const entity = await Entities.findOne({ where });
 
     if (!entity) {
-      return next(unauthorizedError('Invalid email or password'));
+      return next(unauthorizedError("Invalid credentials"));
     }
 
     const isPasswordValid = await comparePassword(password, entity.password);
 
     if (!isPasswordValid) {
-      return next(unauthorizedError('Invalid email or password'));
+      return next(unauthorizedError("Invalid credentials"));
     }
 
     if (entity.blocked) {
-      return next(forbiddenError(entity.reason || 'Account suspended'));
+      return next(forbiddenError(entity.reason || "Account suspended"));
     }
 
     const payload = {
@@ -67,16 +82,16 @@ export const login = async (req, res, next) => {
       tokenFamily,
       expiresAt,
       ipAddress: req.ip || req.connection.remoteAddress,
-      userAgent: req.get('user-agent'),
+      userAgent: req.get("user-agent"),
     });
 
     res.status(200).json({
-      message: 'Login successful',
+      message: "Login successful",
       accessToken,
       refreshToken,
       expiresIn: 900,
       refreshExpiresIn: 604800,
-      tokenType: 'Bearer',
+      tokenType: "Bearer",
       entity: {
         nif_nipc: entity.nif_nipc,
         email_login: entity.email_login,
@@ -86,7 +101,7 @@ export const login = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(genericError('Error during login: ' + error.message));
+    next(genericError("Error during login: " + error.message));
   }
 };
 
@@ -95,7 +110,7 @@ export const getProfile = async (req, res, next) => {
     const entity = await Entities.findByPk(req.user.nif_nipc);
 
     if (!entity) {
-      return next(unauthorizedError('User not found'));
+      return next(unauthorizedError("User not found"));
     }
 
     res.status(200).json({
@@ -107,7 +122,7 @@ export const getProfile = async (req, res, next) => {
       iban: entity.iban,
     });
   } catch (error) {
-    next(genericError('Error fetching profile: ' + error.message));
+    next(genericError("Error fetching profile: " + error.message));
   }
 };
 
@@ -115,28 +130,30 @@ export const updateProfilePic = async (req, res, next) => {
   try {
     const { profile_pic } = req.body;
     const entity = await Entities.findByPk(req.user.nif_nipc);
-    if (!entity) return next(unauthorizedError('User not found'));
+    if (!entity) return next(unauthorizedError("User not found"));
     await entity.update({ profile_pic: profile_pic ?? null });
     res.json({ profile_pic });
   } catch (error) {
-    next(genericError('Error updating profile picture: ' + error.message));
+    next(genericError("Error updating profile picture: " + error.message));
   }
 };
 
 export const updateAvatar = async (req, res, next) => {
   try {
     if (!req.file) {
-      return next(missingFieldError(['file']));
+      return next(missingFieldError(["file"]));
     }
 
     const entity = await Entities.findByPk(req.user.nif_nipc);
-    if (!entity) return next(unauthorizedError('User not found'));
+    if (!entity) return next(unauthorizedError("User not found"));
 
     const previousFileName = entity.profile_pic;
     const extension = extensionFromMime(req.file.mimetype);
     const newFileName = `${entity.nif_nipc}_${Date.now()}.${extension}`;
 
-    console.log(`[updateAvatar] nif=${entity.nif_nipc} previous=${previousFileName ?? '<none>'} new=${newFileName}`);
+    console.log(
+      `[updateAvatar] nif=${entity.nif_nipc} previous=${previousFileName ?? "<none>"} new=${newFileName}`,
+    );
 
     // Upload first, then sweep. Two cleanup strategies combined:
     //   1) The exact name stored in profile_pic — covers legacy uploads that
@@ -146,7 +163,7 @@ export const updateAvatar = async (req, res, next) => {
     //      whose profile_pic row drifted from the stored object. The new
     //      file is excluded from the sweep.
     await minioClient.putObject(AVATAR_BUCKET, newFileName, req.file.buffer, {
-      'Content-Type': req.file.mimetype,
+      "Content-Type": req.file.mimetype,
     });
 
     await entity.update({ profile_pic: newFileName });
@@ -154,7 +171,9 @@ export const updateAvatar = async (req, res, next) => {
     if (previousFileName && previousFileName !== newFileName) {
       await removeObjectSafe(AVATAR_BUCKET, previousFileName);
     }
-    await removeAllWithPrefix(AVATAR_BUCKET, `${entity.nif_nipc}_`, [newFileName]);
+    await removeAllWithPrefix(AVATAR_BUCKET, `${entity.nif_nipc}_`, [
+      newFileName,
+    ]);
 
     res.json({
       success: true,
@@ -164,7 +183,7 @@ export const updateAvatar = async (req, res, next) => {
       bucket: AVATAR_BUCKET,
     });
   } catch (error) {
-    next(genericError('Error updating avatar: ' + error.message));
+    next(genericError("Error updating avatar: " + error.message));
   }
 };
 
@@ -174,49 +193,79 @@ export const changePassword = async (req, res, next) => {
     const nif_nipc = req.user.nif_nipc;
 
     if (!currentPassword || !newPassword) {
-      return next(missingFieldError(['currentPassword', 'newPassword']));
+      return next(missingFieldError(["currentPassword", "newPassword"]));
     }
 
     if (newPassword.length < 8) {
-      return next(validationError([{ newPassword: 'Password must be at least 8 characters long' }]));
+      return next(
+        validationError([
+          { newPassword: "Password must be at least 8 characters long" },
+        ]),
+      );
     }
 
     if (!/[A-Z]/.test(newPassword)) {
-      return next(validationError([{ newPassword: 'Password must contain at least one uppercase letter' }]));
+      return next(
+        validationError([
+          {
+            newPassword: "Password must contain at least one uppercase letter",
+          },
+        ]),
+      );
     }
 
     if (!/[a-z]/.test(newPassword)) {
-      return next(validationError([{ newPassword: 'Password must contain at least one lowercase letter' }]));
+      return next(
+        validationError([
+          {
+            newPassword: "Password must contain at least one lowercase letter",
+          },
+        ]),
+      );
     }
 
     if (!/[0-9]/.test(newPassword)) {
-      return next(validationError([{ newPassword: 'Password must contain at least one number' }]));
+      return next(
+        validationError([
+          { newPassword: "Password must contain at least one number" },
+        ]),
+      );
     }
 
     if (!/[!@#$%^&*]/.test(newPassword)) {
-      return next(validationError([{ newPassword: 'Password must contain at least one special character (!@#$%^&*)' }]));
+      return next(
+        validationError([
+          {
+            newPassword:
+              "Password must contain at least one special character (!@#$%^&*)",
+          },
+        ]),
+      );
     }
 
     const entity = await Entities.findByPk(nif_nipc);
 
     if (!entity) {
-      return next(unauthorizedError('User not found'));
+      return next(unauthorizedError("User not found"));
     }
 
-    const isPasswordValid = await comparePassword(currentPassword, entity.password);
+    const isPasswordValid = await comparePassword(
+      currentPassword,
+      entity.password,
+    );
 
     if (!isPasswordValid) {
-      return next(unauthorizedError('Current password is incorrect'));
+      return next(unauthorizedError("Current password is incorrect"));
     }
 
     const hashedPassword = await hashPassword(newPassword);
     await entity.update({ password: hashedPassword });
 
     res.status(200).json({
-      message: 'Password changed successfully',
+      message: "Password changed successfully",
     });
   } catch (error) {
-    next(genericError('Error changing password: ' + error.message));
+    next(genericError("Error changing password: " + error.message));
   }
 };
 
@@ -229,7 +278,7 @@ export const refreshToken = async (req, res, next) => {
     const { refreshToken: incomingRefreshToken } = req.body;
 
     if (!incomingRefreshToken) {
-      return next(missingFieldError(['refreshToken']));
+      return next(missingFieldError(["refreshToken"]));
     }
 
     // Verify refresh token signature
@@ -237,7 +286,7 @@ export const refreshToken = async (req, res, next) => {
     try {
       decoded = verifyRefreshToken(incomingRefreshToken);
     } catch (error) {
-      return next(unauthorizedError('Invalid or expired refresh token'));
+      return next(unauthorizedError("Invalid or expired refresh token"));
     }
 
     // Check if refresh token exists and is not revoked
@@ -246,34 +295,39 @@ export const refreshToken = async (req, res, next) => {
     });
 
     if (!storedToken) {
-      return next(unauthorizedError('Refresh token not found'));
+      return next(unauthorizedError("Refresh token not found"));
     }
 
     if (storedToken.revoked) {
       // Token reuse detected - security concern
       // Revoke all tokens in this family
       await RefreshTokens.updateMany(
-        { tokenFamily: storedToken.tokenFamily, entidade_nif_nipc: storedToken.entidade_nif_nipc },
-        { revoked: true, revokedAt: new Date() }
+        {
+          tokenFamily: storedToken.tokenFamily,
+          entidade_nif_nipc: storedToken.entidade_nif_nipc,
+        },
+        { revoked: true, revokedAt: new Date() },
       );
       return next(
-        unauthorizedError('Token reuse detected. All tokens have been revoked. Please login again.')
+        unauthorizedError(
+          "Token reuse detected. All tokens have been revoked. Please login again.",
+        ),
       );
     }
 
     // Check expiration
     if (new Date() > storedToken.expiresAt) {
-      return next(unauthorizedError('Refresh token has expired'));
+      return next(unauthorizedError("Refresh token has expired"));
     }
 
     // Verify user still exists
     const entity = await Entities.findByPk(decoded.nif_nipc);
     if (!entity) {
-      return next(unauthorizedError('User not found'));
+      return next(unauthorizedError("User not found"));
     }
 
     if (entity.blocked) {
-      return next(forbiddenError(entity.reason || 'Account suspended'));
+      return next(forbiddenError(entity.reason || "Account suspended"));
     }
 
     // Generate new tokens (token rotation)
@@ -300,19 +354,19 @@ export const refreshToken = async (req, res, next) => {
       tokenFamily: storedToken.tokenFamily, // Same family ID
       expiresAt,
       ipAddress: req.ip || req.connection.remoteAddress,
-      userAgent: req.get('user-agent'),
+      userAgent: req.get("user-agent"),
     });
 
     res.status(200).json({
-      message: 'Token refreshed successfully',
+      message: "Token refreshed successfully",
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
       expiresIn: 900, // 15 minutes in seconds
       refreshExpiresIn: 604800, // 7 days in seconds
-      tokenType: 'Bearer',
+      tokenType: "Bearer",
     });
   } catch (error) {
-    next(genericError('Error refreshing token: ' + error.message));
+    next(genericError("Error refreshing token: " + error.message));
   }
 };
 
@@ -324,24 +378,24 @@ export const logout = async (req, res, next) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return next(missingFieldError(['refreshToken']));
+      return next(missingFieldError(["refreshToken"]));
     }
 
     // Find and revoke the refresh token
     const result = await RefreshTokens.findOneAndUpdate(
       { token: refreshToken },
       { revoked: true, revokedAt: new Date() },
-      { new: true }
+      { new: true },
     );
 
     if (!result) {
-      return next(unauthorizedError('Refresh token not found'));
+      return next(unauthorizedError("Refresh token not found"));
     }
 
     res.status(200).json({
-      message: 'Logout successful',
+      message: "Logout successful",
     });
   } catch (error) {
-    next(genericError('Error during logout: ' + error.message));
+    next(genericError("Error during logout: " + error.message));
   }
 };
