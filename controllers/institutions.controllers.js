@@ -84,7 +84,9 @@ export const createInstitution = async (req, res, next) => {
     res.status(201).json(response);
   } catch (e) {
     await transaction.rollback();
-    if (e.name === "SequelizeValidationError") {
+    if (e.status) {
+      return next(e);
+    } else if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
       next(conflictError([{ message: e.message }]));
@@ -157,7 +159,9 @@ export const updateInstitution = async (req, res, next) => {
     res.json(response);
   } catch (e) {
     await transaction.rollback();
-    if (e.name === "SequelizeValidationError") {
+    if (e.status) {
+      return next(e);
+    } else if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
       next(conflictError([{ message: e.message }]));
