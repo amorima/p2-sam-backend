@@ -1,4 +1,4 @@
-import { Entities, Offers, Needs, NeedItem, Donations, Business, Institutions, Patrons, Contacts, LocationEntity } from "../models/db.config.js";
+import { Entities, Offers, Needs, NeedItem, Donations, Business, Institutions, Contacts, LocationEntity } from "../models/db.config.js";
 import { genericError, notFoundError, missingFieldError, validationError, forbiddenError } from "../utils/error.utils.js";
 
 export const updateEntityProfile = async (req, res, next) => {
@@ -52,7 +52,6 @@ export const deleteEntity = async (req, res, next) => {
 
       await Business.destroy({ where: { nif_nipc }, transaction });
       await Institutions.destroy({ where: { nif_nipc }, transaction });
-      await Patrons.destroy({ where: { nif_nipc }, transaction });
 
       await Contacts.destroy({ where: { entidade_nif_nipc: nif_nipc }, transaction });
       await LocationEntity.destroy({ where: { entidade_nif_nipc: nif_nipc }, transaction });

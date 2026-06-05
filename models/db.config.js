@@ -59,8 +59,6 @@ import OffersModel from "./offers.models.js";
 const Offers = OffersModel(sequelize, DataTypes);
 import PanelsModel from "./panels.models.js";
 const Panels = PanelsModel(sequelize, DataTypes);
-import PatronsModel from "./patrons.models.js";
-const Patrons = PatronsModel(sequelize, DataTypes);
 
 import VouchersModel from "./vouchers.models.js";
 const Vouchers = VouchersModel(mongoose);
@@ -100,15 +98,6 @@ Entities.hasMany(Contacts, {
   sourceKey: "nif_nipc",
 });
 
-Patrons.belongsTo(Entities, {
-  foreignKey: "nif_nipc",
-  targetKey: "nif_nipc",
-});
-Entities.hasOne(Patrons, {
-  foreignKey: "nif_nipc",
-  sourceKey: "nif_nipc",
-});
-
 Institutions.belongsTo(Entities, {
   foreignKey: "nif_nipc",
   targetKey: "nif_nipc",
@@ -127,11 +116,12 @@ Entities.hasOne(Business, {
   sourceKey: "nif_nipc",
 });
 
-Donations.belongsTo(Patrons, {
+Donations.belongsTo(Entities, {
   foreignKey: "mecena_nif_nipc",
   targetKey: "nif_nipc",
+  as: "Patron",
 });
-Patrons.hasMany(Donations, {
+Entities.hasMany(Donations, {
   foreignKey: "mecena_nif_nipc",
   sourceKey: "nif_nipc",
 });
@@ -230,4 +220,4 @@ try{
     console.error("Error synching the models (non-fatal, continuing):", e.message)
 }
 
-export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Patrons, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications, RefreshTokens, ApiTokens };
+export { Business, Citizens, Contacts, Donations, Entities, GoodsServices, Institutions, Leads, LocationEntity, Locations, Lockers, NeedItem, Needs, Offers, Panels, Vouchers, LockersTelemetry, FinancialLogs, InteractionLogs, Notifications, RefreshTokens, ApiTokens };

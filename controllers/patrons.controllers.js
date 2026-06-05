@@ -1,9 +1,41 @@
-import { Patrons, Entities, Locations, Contacts } from "../models/db.config.js";
+import { Op } from "sequelize";
+import { Entities, Locations, Contacts } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
-import { formatResponse, entityInclude, syncEntityRelations, buildEntitySearch } from "../utils/entity.utils.js";
+import { formatResponse, syncEntityRelations } from "../utils/entity.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
 import { sendRegistrationEmail } from "../utils/email.utils.js";
+
+const patronInclude = [
+  {
+    model: Locations,
+    as: "locations",
+    through: { attributes: [] },
+    attributes: ["codigo_postal", "concelho", "distrito", "freguesia", "pais", "rua", "n_porta"],
+  },
+  {
+    model: Contacts,
+    attributes: ["contacto", "nome_contacto", "descricao"],
+  },
+];
+
+const buildPatronSearch = (q) => {
+  const term = String(q ?? "").trim();
+  const baseWhere = { role: "patron" };
+  if (!term) return { where: baseWhere, include: patronInclude };
+  const like = `%${term}%`;
+  return {
+    where: {
+      ...baseWhere,
+      [Op.or]: [
+        { nif_nipc: { [Op.like]: like } },
+        { nome_entidade: { [Op.like]: like } },
+        { email_login: { [Op.like]: like } },
+      ],
+    },
+    include: patronInclude,
+  };
+};
 
 export const createPatron = async (req, res, next) => {
   const { location, entity, contacts } = req.body;
@@ -16,15 +48,21 @@ export const createPatron = async (req, res, next) => {
     return next(missingFieldError(missingFields));
   }
 
-  const transaction = await Patrons.sequelize.transaction();
+  const transaction = await Entities.sequelize.transaction();
 
   try {
-    // Automatically set role for patron
-    const entityWithRole = { ...entity, role: 'patron' };
-    
-    // Hash password
+    const entityWithRole = { ...entity, role: "patron" };
+
     if (entityWithRole.password) {
       entityWithRole.password = await hashPassword(entityWithRole.password);
+    }
+
+    const existing = await Entities.findOne({
+      where: { nif_nipc: entity.nif_nipc },
+      transaction,
+    });
+    if (existing) {
+      throw conflictError([{ patron: "Patron already exists for this entity" }]);
     }
 
     const { entityInstance, locationInstances } = await syncEntityRelations({
@@ -33,17 +71,6 @@ export const createPatron = async (req, res, next) => {
       contacts,
       transaction,
     });
-
-    const locationInstance = locationInstances[0];
-    const existingPatron = await Patrons.findByPk(entityInstance.nif_nipc, { transaction });
-    if (existingPatron) {
-      throw conflictError([{ patron: "Patron already exists for this entity" }]);
-    }
-
-    const patronInstance = await Patrons.create(
-      { nif_nipc: entityInstance.nif_nipc },
-      { transaction }
-    );
 
     await transaction.commit();
 
@@ -55,15 +82,15 @@ export const createPatron = async (req, res, next) => {
     });
 
     const response = formatResponse({
-      resource: { nif_nipc: patronInstance.nif_nipc },
+      resource: { nif_nipc: entityInstance.nif_nipc },
       entity: entityInstance,
-      locations: [locationInstance],
+      locations: [locationInstances[0]],
       contacts,
       links: {
         allPatrons: { href: "/patrons", method: "GET" },
-        self: { href: `/patrons/${patronInstance.nif_nipc}`, method: "GET" },
-        update: { href: `/patrons/${patronInstance.nif_nipc}`, method: "PATCH" },
-        delete: { href: `/patrons/${patronInstance.nif_nipc}`, method: "DELETE" },
+        self: { href: `/patrons/${entityInstance.nif_nipc}`, method: "GET" },
+        update: { href: `/patrons/${entityInstance.nif_nipc}`, method: "PATCH" },
+        delete: { href: `/patrons/${entityInstance.nif_nipc}`, method: "DELETE" },
       },
     });
 
@@ -74,6 +101,8 @@ export const createPatron = async (req, res, next) => {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
       next(conflictError([{ message: e.message }]));
+    } else if (e.status && e.status < 500) {
+      next(e);
     } else {
       next(genericError("Error Creating Patron"));
     }
@@ -84,18 +113,21 @@ export const getPatron = async (req, res, next) => {
   const { nif_nipc } = req.params;
 
   try {
-    const patron = await Patrons.findByPk(nif_nipc, { include: entityInclude });
-    if (!patron) return next(notFoundError("Patron", nif_nipc));
+    const entity = await Entities.findOne({
+      where: { nif_nipc, role: "patron" },
+      include: patronInclude,
+    });
+    if (!entity) return next(notFoundError("Patron", nif_nipc));
 
     const response = formatResponse({
-      resource: { nif_nipc: patron.nif_nipc },
-      entity: patron.Entity,
-      locations: patron.Entity?.locations,
-      contacts: patron.Entity?.Contacts,
+      resource: { nif_nipc: entity.nif_nipc },
+      entity,
+      locations: entity.locations,
+      contacts: entity.Contacts,
       links: {
-        self: { href: `/patrons/${patron.nif_nipc}`, method: "GET" },
-        update: { href: `/patrons/${patron.nif_nipc}`, method: "PATCH" },
-        delete: { href: `/patrons/${patron.nif_nipc}`, method: "DELETE" },
+        self: { href: `/patrons/${entity.nif_nipc}`, method: "GET" },
+        update: { href: `/patrons/${entity.nif_nipc}`, method: "PATCH" },
+        delete: { href: `/patrons/${entity.nif_nipc}`, method: "DELETE" },
       },
     });
 
@@ -107,32 +139,37 @@ export const getPatron = async (req, res, next) => {
 
 export const getAllPatrons = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
-  const { where, include } = buildEntitySearch(req.query.q);
+  const { where, include } = buildPatronSearch(req.query.q);
   try {
-    const { count: total, rows } = await Patrons.findAndCountAll({ where, include, limit, offset, distinct: true });
-
-    const items = rows.map((patron) => {
-      const entity = patron.Entity;
-      return formatResponse({
-        resource: { nif_nipc: patron.nif_nipc },
-        entity,
-        locations: entity?.locations,
-        contacts: entity?.Contacts,
-        links: {
-          self: { href: `/patrons/${patron.nif_nipc}`, method: "GET" },
-          update: { href: `/patrons/${patron.nif_nipc}`, method: "PATCH" },
-          delete: { href: `/patrons/${patron.nif_nipc}`, method: "DELETE" },
-        },
-      });
+    const { count: total, rows } = await Entities.findAndCountAll({
+      where,
+      include,
+      limit,
+      offset,
+      distinct: true,
     });
+
+    const items = rows.map((entity) =>
+      formatResponse({
+        resource: { nif_nipc: entity.nif_nipc },
+        entity,
+        locations: entity.locations,
+        contacts: entity.Contacts,
+        links: {
+          self: { href: `/patrons/${entity.nif_nipc}`, method: "GET" },
+          update: { href: `/patrons/${entity.nif_nipc}`, method: "PATCH" },
+          delete: { href: `/patrons/${entity.nif_nipc}`, method: "DELETE" },
+        },
+      })
+    );
 
     res.json({
       items,
       total,
       limit,
       offset,
-      links: buildPageLinks('/patrons', limit, offset, total),
-      _links: { create: { href: "/patrons", method: "POST" } }
+      links: buildPageLinks("/patrons", limit, offset, total),
+      _links: { create: { href: "/patrons", method: "POST" } },
     });
   } catch (e) {
     next(genericError("Erro fetching patrons"));
@@ -142,14 +179,14 @@ export const getAllPatrons = async (req, res, next) => {
 export const updatePatron = async (req, res, next) => {
   const { nif_nipc } = req.params;
   const { entity: entityData, locations, contacts } = req.body;
-  const transaction = await Patrons.sequelize.transaction();
+  const transaction = await Entities.sequelize.transaction();
 
   try {
-    const patron = await Patrons.findByPk(nif_nipc, { transaction });
-    if (!patron) return next(notFoundError("Patron", nif_nipc));
-
-    const entity = await patron.getEntity({ transaction });
-    if (!entity) return next(notFoundError("Entity", nif_nipc));
+    const entity = await Entities.findOne({
+      where: { nif_nipc, role: "patron" },
+      transaction,
+    });
+    if (!entity) return next(notFoundError("Patron", nif_nipc));
 
     if (entityData && entityData.password) {
       entityData.password = await hashPassword(entityData.password);
@@ -167,18 +204,21 @@ export const updatePatron = async (req, res, next) => {
 
     await transaction.commit();
 
-    const refreshedPatron = await Patrons.findByPk(nif_nipc, { include: entityInclude });
-    if (!refreshedPatron) return next(notFoundError("Patron", nif_nipc));
+    const refreshed = await Entities.findOne({
+      where: { nif_nipc, role: "patron" },
+      include: patronInclude,
+    });
+    if (!refreshed) return next(notFoundError("Patron", nif_nipc));
 
     const response = formatResponse({
-      resource: { nif_nipc: refreshedPatron.nif_nipc },
-      entity: refreshedPatron.Entity,
-      locations: refreshedPatron.Entity?.locations,
-      contacts: refreshedPatron.Entity?.Contacts,
+      resource: { nif_nipc: refreshed.nif_nipc },
+      entity: refreshed,
+      locations: refreshed.locations,
+      contacts: refreshed.Contacts,
       links: {
-        self: { href: `/patrons/${refreshedPatron.nif_nipc}`, method: "GET" },
-        update: { href: `/patrons/${refreshedPatron.nif_nipc}`, method: "PATCH" },
-        delete: { href: `/patrons/${refreshedPatron.nif_nipc}`, method: "DELETE" },
+        self: { href: `/patrons/${refreshed.nif_nipc}`, method: "GET" },
+        update: { href: `/patrons/${refreshed.nif_nipc}`, method: "PATCH" },
+        delete: { href: `/patrons/${refreshed.nif_nipc}`, method: "DELETE" },
       },
     });
 
@@ -197,14 +237,14 @@ export const updatePatron = async (req, res, next) => {
 
 export const deletePatron = async (req, res, next) => {
   const { nif_nipc } = req.params;
-  const transaction = await Patrons.sequelize.transaction();
+  const transaction = await Entities.sequelize.transaction();
 
   try {
-    const patron = await Patrons.findByPk(nif_nipc, { transaction });
-    if (!patron) return next(notFoundError("Patron", nif_nipc));
-
-    const entity = await patron.getEntity({ transaction });
-    if (!entity) return next(notFoundError("Entity", nif_nipc));
+    const entity = await Entities.findOne({
+      where: { nif_nipc, role: "patron" },
+      transaction,
+    });
+    if (!entity) return next(notFoundError("Patron", nif_nipc));
 
     const locations = await entity.getLocations({ transaction });
 
@@ -217,7 +257,6 @@ export const deletePatron = async (req, res, next) => {
       await entity.removeLocations(locations, { transaction });
     }
 
-    await patron.destroy({ transaction });
     await entity.destroy({ transaction });
 
     await transaction.commit();

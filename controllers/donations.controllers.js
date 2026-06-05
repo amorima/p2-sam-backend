@@ -1,18 +1,17 @@
 import { Op, fn, col, cast, where as sequelizeWhere } from "sequelize";
-import { Donations, FinancialLogs, Patrons, Entities } from "../models/db.config.js";
+import { Donations, FinancialLogs, Entities } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { buildFinancialLogData } from "../utils/donation.utils.js";
 import { persistNotification, emitToAdmins, emitToUser } from "../utils/socket.js";
 
-// Join donations to their patron's entity so the donor name is searchable.
-// Always a LEFT JOIN (required:false) so donations without a patron row still list.
+// Join donations directly to the donor entity (no intermediate mecena table).
 const patronEntityInclude = [
   {
-    model: Patrons,
+    model: Entities,
+    as: "Patron",
     required: false,
-    attributes: ["nif_nipc"],
-    include: [{ model: Entities, required: false, attributes: ["nif_nipc", "nome_entidade"] }],
+    attributes: ["nif_nipc", "nome_entidade"],
   },
 ];
 
@@ -25,7 +24,7 @@ const buildDonationSearch = (q) => {
   return {
     [Op.or]: [
       { mecena_nif_nipc: { [Op.like]: like } },
-      { "$patron.Entity.nome_entidade$": { [Op.like]: like } },
+      { "$Patron.nome_entidade$": { [Op.like]: like } },
       sequelizeWhere(cast(col("donation.valor_transacao"), "CHAR"), { [Op.like]: like }),
     ],
   };
@@ -120,7 +119,7 @@ export const getDonationStats = async (req, res, next) => {
       // Join only to satisfy the name search; select NO joined columns so the
       // GROUP BY stays valid under only_full_group_by. Omit entirely when no search.
       include: search
-        ? [{ model: Patrons, required: false, attributes: [], include: [{ model: Entities, required: false, attributes: [] }] }]
+        ? [{ model: Entities, as: "Patron", required: false, attributes: [] }]
         : [],
       attributes: [
         "estado",
