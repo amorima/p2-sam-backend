@@ -15,7 +15,7 @@ export const getVoucher = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const voucher = await Vouchers.findByPk(id);
+    const voucher = await Vouchers.findById(id).lean();
     if (!voucher) return next(notFoundError("Voucher", id));
     res.json(voucher);
   } catch (e) {
@@ -26,7 +26,10 @@ export const getVoucher = async (req, res, next) => {
 export const getAllVouchers = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
-    const { count: total, rows: items } = await Vouchers.findAndCountAll({ limit, offset });
+    const [items, total] = await Promise.all([
+      Vouchers.find().skip(offset).limit(limit).lean(),
+      Vouchers.countDocuments(),
+    ]);
     res.json({ items, total, limit, offset, links: buildPageLinks('/vouchers', limit, offset, total) });
   } catch (e) {
     next(genericError("Error fetching vouchers"));
@@ -37,9 +40,8 @@ export const updateVoucher = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const voucher = await Vouchers.findByPk(id);
+    const voucher = await Vouchers.findByIdAndUpdate(id, req.body, { new: true, lean: true });
     if (!voucher) return next(notFoundError("Voucher", id));
-    await voucher.update(req.body);
     res.json(voucher);
   } catch (e) {
     next(genericError("Error updating voucher"));
