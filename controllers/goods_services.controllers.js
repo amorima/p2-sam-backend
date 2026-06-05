@@ -1,4 +1,4 @@
-import { GoodsServices } from "../models/db.config.js";
+import { GoodsServices, NeedItem, Offers } from "../models/db.config.js";
 import { genericError, missingFieldError, notFoundError, conflictError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 
@@ -30,6 +30,18 @@ export const deleteGoodsService = async (req, res, next) => {
   try {
     const item = await GoodsServices.findByPk(tipo_bem_servico);
     if (!item) return next(notFoundError("GoodsService", tipo_bem_servico));
+
+    const [needCount, offerCount] = await Promise.all([
+      NeedItem.count({ where: { tipo_bem_servico } }),
+      Offers.count({ where: { tipo_bem_servico } }),
+    ]);
+
+    if (needCount > 0 || offerCount > 0) {
+      return next(conflictError([{
+        tipo_bem_servico: `Não é possível eliminar: está em uso em ${needCount} pedido(s) e ${offerCount} oferta(s)`
+      }]));
+    }
+
     await item.destroy();
     res.status(204).send();
   } catch (e) {
