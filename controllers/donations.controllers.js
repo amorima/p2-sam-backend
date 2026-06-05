@@ -80,6 +80,14 @@ export const getDonation = async (req, res, next) => {
   }
 };
 
+const DONATION_SORT_FIELDS = ['id_doacao', 'data', 'valor_transacao', 'tipo_donativo', 'estado']
+
+function parseDonationOrder(query) {
+  const field = DONATION_SORT_FIELDS.includes(query.sort_by) ? query.sort_by : 'id_doacao'
+  const dir   = query.sort_dir?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+  return [[field, dir]]
+}
+
 export const getAllDonations = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   const search = buildDonationSearch(req.query.q);
@@ -91,7 +99,7 @@ export const getAllDonations = async (req, res, next) => {
       offset,
       subQuery: false,
       distinct: true,
-      order: [["id_doacao", "DESC"]],
+      order: parseDonationOrder(req.query),
     });
     // toJSON() → plain objects: the included Sequelize instances must never be
     // passed raw through setCache (node-cache deep-clones into the TCP socket).
@@ -265,7 +273,7 @@ export const getAllPatronDonation = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows } = await Donations.findAndCountAll({
-      where: { mecena_nif_nipc: nif_nipc }, limit, offset, order: [["id_doacao", "DESC"]]
+      where: { mecena_nif_nipc: nif_nipc }, limit, offset, order: parseDonationOrder(req.query)
     });
     res.json({ items: rows, total, limit, offset, links: buildPageLinks(`/patrons/${nif_nipc}/donations`, limit, offset, total) });
   } catch (e) {

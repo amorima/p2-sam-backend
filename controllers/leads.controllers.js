@@ -120,6 +120,14 @@ export const createLead = async (req, res, next) => {
 
 const LEAD_VALIDITY_MS = 168 * 3600 * 1000
 
+const LEADS_SORT_FIELDS = ['data', 'nome_cidadao', 'item_pedido', 'pin_entrega', 'estado']
+
+function parseLeadsOrder(query) {
+  const field = LEADS_SORT_FIELDS.includes(query.sort_by) ? query.sort_by : 'data'
+  const dir   = query.sort_dir?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+  return [[field, dir]]
+}
+
 export const getLeadsStats = async (req, res, next) => {
   try {
     const now = Date.now()
@@ -145,7 +153,8 @@ export const getAllLeads = async (req, res, next) => {
   const { limit, offset } = parsePagination(req.query);
   try {
     const { count: total, rows } = await Leads.findAndCountAll({
-      include: [Citizens, Panels, Lockers], limit, offset, distinct: true
+      include: [Citizens, Panels, Lockers], limit, offset, distinct: true,
+      order: parseLeadsOrder(req.query)
     });
     res.json({ items: rows.map(r => r.toJSON()), total, limit, offset, links: buildPageLinks('/leads', limit, offset, total) });
   } catch (e) {

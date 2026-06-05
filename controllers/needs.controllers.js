@@ -68,6 +68,14 @@ const buildNeedSearch = (q) => {
   };
 };
 
+const NEEDS_SORT_FIELDS = ['id_pedido', 'data', 'estado', 'urgente']
+
+function parseNeedsOrder(query) {
+  const field = NEEDS_SORT_FIELDS.includes(query.sort_by) ? query.sort_by : 'id_pedido'
+  const dir   = query.sort_dir?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+  return [[field, dir]]
+}
+
 export const getNeedsStats = async (req, res, next) => {
   const search = buildNeedSearch(req.query.q)
   try {
@@ -117,17 +125,17 @@ export const getAllNeeds = async (req, res, next) => {
         limit,
         offset,
         subQuery: false,
-        order: [["id_pedido", "DESC"]],
+        order: parseNeedsOrder(req.query),
       });
       const ids = idRows.map((r) => r.id_pedido);
       const rows = ids.length
-        ? await Needs.findAll({ where: { id_pedido: ids }, include: [NeedItem], order: [["id_pedido", "DESC"]] })
+        ? await Needs.findAll({ where: { id_pedido: ids }, include: [NeedItem], order: parseNeedsOrder(req.query) })
         : [];
       return res.json({ items: rows.map((r) => r.toJSON()), total, limit, offset, links: buildPageLinks('/needs', limit, offset, total) });
     }
 
     const { count: total, rows } = await Needs.findAndCountAll({
-      include: [NeedItem], limit, offset, distinct: true, order: [["id_pedido", "DESC"]]
+      include: [NeedItem], limit, offset, distinct: true, order: parseNeedsOrder(req.query)
     });
     res.json({ items: rows.map(r => r.toJSON()), total, limit, offset, links: buildPageLinks('/needs', limit, offset, total) });
   } catch (e) {
