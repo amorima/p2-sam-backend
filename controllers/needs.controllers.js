@@ -240,6 +240,41 @@ export const updateNeed = async (req, res, next) => {
   }
 };
 
+export const businessResponse = async (req, res, next) => {
+  const { id_need } = req.params
+  const { id_item, estado, motivo } = req.body
+  const negocio_nif = req.user.nif_nipc
+
+  if (!['ACEITE', 'RECUSADO', 'CONCLUIDO'].includes(estado)) {
+    return next(genericError('Estado inválido'))
+  }
+
+  try {
+    const item = await NeedItem.findOne({
+      where: { id_item, id_pedido: id_need, match_negocio_nif: negocio_nif }
+    })
+    if (!item) return next(forbiddenError('Item não atribuído a este negócio ou não encontrado'))
+
+    await item.update({
+      match_negocio_estado: estado,
+      match_negocio_motivo: estado === 'RECUSADO' ? (motivo ?? null) : null
+    })
+
+    persistNotification({
+      tipo: 'business_response',
+      titulo: estado === 'ACEITE' ? 'Pedido aceite pelo negócio' : estado === 'RECUSADO' ? 'Pedido recusado pelo negócio' : 'Item concluído pelo negócio',
+      corpo: `O negócio ${negocio_nif} marcou o item #${id_item} do pedido #${id_need} como ${estado.toLowerCase()}`,
+      destinatario: 'admin',
+      payload: { id_pedido: Number(id_need), id_item: Number(id_item), estado }
+    }).then(emitToAdmins)
+
+    res.json({ success: true, estado })
+  } catch (e) {
+    console.error('[needs] businessResponse error:', e?.message)
+    next(genericError('Erro ao atualizar resposta do negócio'))
+  }
+}
+
 export const deleteNeed = async (req, res, next) => {
   const { id_need } = req.params;
 
