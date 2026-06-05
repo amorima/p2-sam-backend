@@ -104,6 +104,7 @@ export const createPatron = async (req, res, next) => {
     } else if (e.status && e.status < 500) {
       next(e);
     } else {
+      console.error('[patrons] create error:', e?.message, e?.original?.sqlMessage ?? '');
       next(genericError("Error Creating Patron"));
     }
   }
