@@ -1,4 +1,4 @@
-import { Institutions, Entities, Locations, Contacts } from "../models/db.config.js";
+import { Institutions, Entities, Locations, Contacts, Needs, NeedItem } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations, buildEntitySearch } from "../utils/entity.utils.js";
@@ -266,6 +266,14 @@ export const deleteInstitution = async (req, res, next) => {
 
     if (locations.length) {
       await entity.removeLocations(locations, { transaction });
+    }
+
+    // Cascade: destroy needs and their items before destroying the institution
+    const needs = await Needs.findAll({ where: { nif_nipc }, transaction });
+    if (needs.length) {
+      const needIds = needs.map(n => n.id_pedido);
+      await NeedItem.destroy({ where: { id_pedido: needIds }, transaction });
+      await Needs.destroy({ where: { id_pedido: needIds }, transaction });
     }
 
     await institution.destroy({ transaction });

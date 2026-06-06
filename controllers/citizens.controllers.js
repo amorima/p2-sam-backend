@@ -131,10 +131,10 @@ export const deleteCitizen = async (req, res, next) => {
     const transaction = await Citizens.sequelize.transaction();
 
     try {
-      await Leads.update(
-        { contacto_cidadao: null },
-        { where: { contacto_cidadao: contacto }, transaction }
-      );
+      await Leads.destroy({
+        where: { contacto_cidadao: contacto },
+        transaction,
+      });
 
       await citizen.destroy({ transaction });
       await transaction.commit();
