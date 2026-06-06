@@ -20,7 +20,7 @@ export const verifyJWT = async (req, res, next) => {
     const token = extractToken(req.headers.authorization);
     if (!token) return next(unauthorizedError('Authorization token is missing'));
 
-    // Permanent API token path — dynamic import avoids ESM init-order issues
+    // Dynamic import avoids circular ESM init-order issues with db.config.js
     if (token.startsWith('sam_')) {
       const { ApiTokens } = await import('../models/db.config.js');
       const hash = hashApiToken(token);
@@ -31,7 +31,6 @@ export const verifyJWT = async (req, res, next) => {
       return next();
     }
 
-    // Standard JWT path
     const decoded = verifyToken(token);
     req.user = decoded;
     next();
@@ -42,7 +41,6 @@ export const verifyJWT = async (req, res, next) => {
 
 export const requireRoles = (requiredRoles) => {
   return (req, res, next) => {
-    // Ensure verifyJWT was called first
     if (!req.user) {
       return next(unauthorizedError('User information not found in request'));
     }
@@ -58,35 +56,22 @@ export const requireRoles = (requiredRoles) => {
   };
 };
 
-/**
- * Middleware: Check if user is admin or the entity owner (self-entity)
- * Only admin or the entity with matching nif_nipc can perform the action
- */
+// Grants access to admins or to the entity that owns the resource (self-management).
 export const adminOrSelf = (req, res, next) => {
-  // Ensure verifyJWT was called first
   if (!req.user) {
     return next(unauthorizedError('User information not found in request'));
   }
 
-  const userRole = req.user.role;
-  const userNifNipc = req.user.nif_nipc;
+  const { role, nif_nipc } = req.user;
   const targetNifNipc = req.params.nif_nipc;
 
-  // Validate nif_nipc format (must be 9 digits)
   if (!/^\d{9}$/.test(targetNifNipc)) {
     return next(unauthorizedError('Invalid entity identifier format'));
   }
 
-  // Allow if user is admin
-  if (userRole === 'admin') {
+  if (role === 'admin' || nif_nipc === targetNifNipc) {
     return next();
   }
 
-  // Allow if user is the entity owner
-  if (userNifNipc === targetNifNipc) {
-    return next();
-  }
-
-  // Deny otherwise
   return next(forbiddenError('You do not have permission to modify this resource. Only admins or the resource owner can perform this action.'));
 };

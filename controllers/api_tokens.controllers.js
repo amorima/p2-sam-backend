@@ -25,7 +25,7 @@ export const createToken = async (req, res, next) => {
 
     const plainToken = generateApiToken()
     const hash = hashApiToken(plainToken)
-    const prefix = plainToken.slice(0, 12) // "sam_" + 8 chars visible
+    const prefix = plainToken.slice(0, 12) // visible prefix stored for display
 
     const doc = await ApiTokens.create({
       nif_nipc: req.user.nif_nipc,

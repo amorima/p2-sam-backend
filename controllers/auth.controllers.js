@@ -67,15 +67,11 @@ export const login = async (req, res, next) => {
       role: entity.role,
     };
 
-    // Generate access token (short-lived, default 15 minutes)
     const accessToken = generateToken(payload);
-
-    // Generate refresh token (long-lived, default 7 days)
     const refreshToken = generateRefreshToken(payload);
     const tokenFamily = generateTokenFamily();
 
-    // Store refresh token in database with metadata
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await RefreshTokens.create({
       entidade_nif_nipc: entity.nif_nipc,
       token: refreshToken,
@@ -155,13 +151,9 @@ export const updateAvatar = async (req, res, next) => {
       `[updateAvatar] nif=${entity.nif_nipc} previous=${previousFileName ?? "<none>"} new=${newFileName}`,
     );
 
-    // Upload first, then sweep. Two cleanup strategies combined:
-    //   1) The exact name stored in profile_pic — covers legacy uploads that
-    //      kept the original filename.
-    //   2) Anything in the avatar bucket whose key starts with `<nif>_` —
-    //      covers leftovers from prior requests whose cleanup failed, or
-    //      whose profile_pic row drifted from the stored object. The new
-    //      file is excluded from the sweep.
+    // Dual cleanup: removes the exact previous filename (covers legacy uploads)
+    // and sweeps any orphaned files with the NIF prefix (covers cleanup failures
+    // in prior requests or drift between profile_pic row and stored object).
     await minioClient.putObject(AVATAR_BUCKET, newFileName, req.file.buffer, {
       "Content-Type": req.file.mimetype,
     });
@@ -269,10 +261,9 @@ export const changePassword = async (req, res, next) => {
   }
 };
 
-/**
- * Refresh access token using refresh token (with token rotation)
- * Hybrid variant: Issues new refresh token to enable rotation and detect reuse attacks
- */
+// Token rotation: each refresh issues a new refresh token and revokes the old one.
+// If a revoked token is reused, the entire family is invalidated — this detects
+// token theft where the attacker uses a token after the legitimate user has rotated it.
 export const refreshToken = async (req, res, next) => {
   try {
     const { refreshToken: incomingRefreshToken } = req.body;
@@ -281,7 +272,6 @@ export const refreshToken = async (req, res, next) => {
       return next(missingFieldError(["refreshToken"]));
     }
 
-    // Verify refresh token signature
     let decoded;
     try {
       decoded = verifyRefreshToken(incomingRefreshToken);
@@ -289,7 +279,6 @@ export const refreshToken = async (req, res, next) => {
       return next(unauthorizedError("Invalid or expired refresh token"));
     }
 
-    // Check if refresh token exists and is not revoked
     const storedToken = await RefreshTokens.findOne({
       token: incomingRefreshToken,
     });
@@ -299,8 +288,7 @@ export const refreshToken = async (req, res, next) => {
     }
 
     if (storedToken.revoked) {
-      // Token reuse detected - security concern
-      // Revoke all tokens in this family
+      // Reuse of a revoked token: revoke the entire family to protect against theft.
       await RefreshTokens.updateMany(
         {
           tokenFamily: storedToken.tokenFamily,
@@ -315,12 +303,10 @@ export const refreshToken = async (req, res, next) => {
       );
     }
 
-    // Check expiration
     if (new Date() > storedToken.expiresAt) {
       return next(unauthorizedError("Refresh token has expired"));
     }
 
-    // Verify user still exists
     const entity = await Entities.findByPk(decoded.nif_nipc);
     if (!entity) {
       return next(unauthorizedError("User not found"));
@@ -330,7 +316,6 @@ export const refreshToken = async (req, res, next) => {
       return next(forbiddenError(entity.reason || "Account suspended"));
     }
 
-    // Generate new tokens (token rotation)
     const payload = {
       nif_nipc: entity.nif_nipc,
       email_login: entity.email_login,
@@ -340,18 +325,17 @@ export const refreshToken = async (req, res, next) => {
     const newAccessToken = generateToken(payload);
     const newRefreshToken = generateRefreshToken(payload);
 
-    // Revoke old refresh token
     await RefreshTokens.findByIdAndUpdate(storedToken._id, {
       revoked: true,
       revokedAt: new Date(),
     });
 
-    // Store new refresh token with same family ID (for tracking rotation chain)
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    // New token inherits the same familyId so reuse can be detected across rotations.
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await RefreshTokens.create({
       entidade_nif_nipc: entity.nif_nipc,
       token: newRefreshToken,
-      tokenFamily: storedToken.tokenFamily, // Same family ID
+      tokenFamily: storedToken.tokenFamily,
       expiresAt,
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get("user-agent"),
@@ -370,9 +354,6 @@ export const refreshToken = async (req, res, next) => {
   }
 };
 
-/**
- * Logout - Revoke refresh token
- */
 export const logout = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
@@ -381,7 +362,6 @@ export const logout = async (req, res, next) => {
       return next(missingFieldError(["refreshToken"]));
     }
 
-    // Find and revoke the refresh token
     const result = await RefreshTokens.findOneAndUpdate(
       { token: refreshToken },
       { revoked: true, revokedAt: new Date() },
