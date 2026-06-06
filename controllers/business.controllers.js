@@ -320,6 +320,7 @@ export const deleteBusiness = async (req, res, next) => {
       await entity.removeLocations(locations, { transaction });
     }
 
+    await Offers.destroy({ where: { negocio_nif_nipc: nif_nipc }, transaction });
     await business.destroy({ transaction });
     await entity.destroy({ transaction });
 

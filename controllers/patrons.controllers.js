@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { Entities, Locations, Contacts } from "../models/db.config.js";
+import { Entities, Locations, Contacts, Donations } from "../models/db.config.js";
 import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, syncEntityRelations } from "../utils/entity.utils.js";
@@ -258,6 +258,7 @@ export const deletePatron = async (req, res, next) => {
       await entity.removeLocations(locations, { transaction });
     }
 
+    await Donations.destroy({ where: { mecena_nif_nipc: nif_nipc }, transaction });
     await entity.destroy({ transaction });
 
     await transaction.commit();
