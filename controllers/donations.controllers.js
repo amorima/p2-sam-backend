@@ -73,6 +73,11 @@ export const getDonation = async (req, res, next) => {
     const donation = await Donations.findByPk(id_donation);
     if (!donation) return next(notFoundError("Donation", id_donation));
 
+    // Admin vê qualquer doação; mecenas só vê as suas próprias
+    if (req.user.role !== 'admin' && donation.mecena_nif_nipc !== req.user.nif_nipc) {
+      return next(forbiddenError('Não tem permissão para aceder a esta doação'));
+    }
+
     res.json({ donation });
   } catch (e) {
     next(genericError("Error fetching donation"));

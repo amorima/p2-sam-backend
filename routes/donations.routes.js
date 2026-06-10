@@ -13,7 +13,7 @@ router.route('/')
 // Static route must precede /:id_donation so "stats" isn't captured as an id.
 router.get('/stats', verifyJWT, requireRoles('admin'), setCache(60), donationsController.getDonationStats)
 router.route('/:id_donation')
-    .get(verifyJWT, requireRoles('admin'), donationsController.getDonation)
+    .get(verifyJWT, donationsController.getDonation)
     .patch(verifyJWT, requireRoles('admin'), deleteCache('/donations'), donationsController.updateDonation)
     .delete(verifyJWT, requireRoles('admin'), deleteCache('/donations'), donationsController.deleteDonation)
 
