@@ -1,5 +1,5 @@
 import { Institutions, Entities, Locations, Contacts, Needs, NeedItem } from "../models/db.config.js";
-import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError, uniqueConstraintError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations, buildEntitySearch } from "../utils/entity.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
@@ -101,7 +101,7 @@ export const createInstitution = async (req, res, next) => {
     } else if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
-      next(conflictError([{ message: e.message }]));
+      next(uniqueConstraintError(e));
     } else {
       next(genericError("Error Creating Institution"));
     }
@@ -176,7 +176,7 @@ export const updateInstitution = async (req, res, next) => {
     } else if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
-      next(conflictError([{ message: e.message }]));
+      next(uniqueConstraintError(e));
     } else {
       next(genericError("Error updating institution"));
     }

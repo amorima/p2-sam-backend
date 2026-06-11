@@ -1,5 +1,5 @@
 import { Business, Entities, Locations, Contacts, Offers } from "../models/db.config.js";
-import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError, uniqueConstraintError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations, buildEntitySearch } from "../utils/entity.utils.js";
 import { ensureGoodsService } from "../utils/offer.utils.js";
@@ -132,7 +132,7 @@ export const createBusiness = async (req, res, next) => {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
-      next(conflictError([{ message: e.message }]));
+      next(uniqueConstraintError(e));
     } else if (e.status && e.status < 500) {
       next(e);
     } else {
@@ -223,7 +223,7 @@ export const updateBusiness = async (req, res, next) => {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
-      next(conflictError([{ message: e.message }]));
+      next(uniqueConstraintError(e));
     } else if (e.status && e.status < 500) {
       next(e);
     } else {

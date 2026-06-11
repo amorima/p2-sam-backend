@@ -87,6 +87,17 @@ export const conflictError = (errors) => {
     return err;
 }
 
+// 409 from a SequelizeUniqueConstraintError, naming the conflicting fields.
+// Sequelize's own message is just "Validation error", which is useless to the
+// client; the duplicated columns live in e.errors[].path.
+export const uniqueConstraintError = (e) => {
+    const fields = e?.errors?.length
+        ? e.errors.map((item) => ({ [item.path]: `${item.path} already in use` }))
+        : [{ message: "Duplicate value for a unique field" }];
+
+    return conflictError(fields);
+}
+
 // 410 Gone
 export const goneError = (resource, id, message = null) => {
   const err = new Error(message || "Resource gone");

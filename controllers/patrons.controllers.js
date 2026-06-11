@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import { Entities, Locations, Contacts, Donations } from "../models/db.config.js";
-import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError, uniqueConstraintError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, syncEntityRelations } from "../utils/entity.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
@@ -112,7 +112,7 @@ export const createPatron = async (req, res, next) => {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
-      next(conflictError([{ message: e.message }]));
+      next(uniqueConstraintError(e));
     } else if (e.status && e.status < 500) {
       next(e);
     } else {
@@ -241,7 +241,7 @@ export const updatePatron = async (req, res, next) => {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
-      next(conflictError([{ message: e.message }]));
+      next(uniqueConstraintError(e));
     } else if (e.status && e.status < 500) {
       next(e);
     } else {
