@@ -7,10 +7,21 @@ export default (sequelize, DataTypes) => sequelize.define("donation", {
    mecena_nif_nipc: {
       type: DataTypes.STRING(9),
       allowNull: false,
+      validate: {
+         is: {
+            args: /^\d{9}$/,
+            msg: "mecena_nif_nipc must be exactly 9 digits",
+         },
+      },
    },
    data: {
       type: DataTypes.DATE,
       allowNull: false,
+      validate: {
+         isDate: {
+            msg: "data must be a valid date",
+         },
+      },
    },
    valor_transacao: {
       type: DataTypes.DECIMAL(10, 2),

@@ -7,14 +7,30 @@ export default (sequelize, DataTypes) => sequelize.define("offer", {
    negocio_nif_nipc: {
     type: DataTypes.STRING(9),
     allowNull: false,
+    validate: {
+      is: {
+        args: /^\d{9}$/,
+        msg: "negocio_nif_nipc must be exactly 9 digits",
+      },
+    },
    },
    tipo_bem_servico: {
     type: DataTypes.STRING(50),
     allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: "tipo_bem_servico cannot be empty",
+      },
+    },
    },
    descricao: {
     type: DataTypes.STRING(255),
     allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: "descricao cannot be empty",
+      },
+    },
    },
    valor_total: {
     type: DataTypes.DECIMAL(10, 2),

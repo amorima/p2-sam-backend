@@ -8,6 +8,12 @@ export default (sequelize, DataTypes) => sequelize.define("need", {
    nif_nipc: {
     type: DataTypes.STRING(9),
     allowNull: false,
+    validate: {
+      is: {
+        args: /^\d{9}$/,
+        msg: "nif_nipc must be exactly 9 digits",
+      },
+    },
    },
    estado: {
     type: DataTypes.ENUM("PENDENTE", "ACEITE", "REJEITADO"),

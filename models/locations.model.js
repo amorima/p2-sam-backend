@@ -2,6 +2,12 @@ export default (sequelize, DataTypes) => sequelize.define("location",{
   codigo_postal: {
     type: DataTypes.STRING(8),
     primaryKey: true,
+    validate: {
+      is: {
+        args: /^\d{4}-\d{3}$/,
+        msg: "codigo_postal must follow the format 0000-000",
+      },
+    },
   },
   concelho: {
     type: DataTypes.STRING(45),

@@ -16,10 +16,22 @@ export default (sequelize, DataTypes) => sequelize.define("lead",{
   nome_cidadao: {
     type: DataTypes.STRING(50),
     allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: "nome_cidadao cannot be empty",
+      },
+    },
   },
   contacto_cidadao: {
     type: DataTypes.STRING(50),
     allowNull: false,
+    validate: {
+      is: {
+        // Phone number (9-15 digits, optional +) or email address
+        args: /^(?:\+?\d{9,15}|[^\s@]+@[^\s@]+\.[^\s@]+)$/,
+        msg: "contacto_cidadao must be a phone number or a valid email address",
+      },
+    },
   },
   id_pedido: {
     type: DataTypes.INTEGER,
