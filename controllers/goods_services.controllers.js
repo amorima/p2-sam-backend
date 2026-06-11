@@ -1,5 +1,5 @@
 import { GoodsServices, NeedItem, Offers } from "../models/db.config.js";
-import { genericError, missingFieldError, notFoundError, conflictError } from "../utils/error.utils.js";
+import { genericError, missingFieldError, notFoundError, conflictError, validationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 
 export const createGoodsService = async (req, res, next) => {
@@ -8,18 +8,26 @@ export const createGoodsService = async (req, res, next) => {
   if (!tipo_bem_servico || !tipo_bem) {
     return next(missingFieldError(["tipo_bem_servico", "tipo_bem"]));
   }
+  if (typeof tipo_bem_servico !== "string" || !tipo_bem_servico.trim()) {
+    return next(validationError([{ tipo_bem_servico: "tipo_bem_servico must be a non-empty string" }]));
+  }
   if (!["bem", "servico"].includes(tipo_bem)) {
-    return next(missingFieldError(["tipo_bem must be 'bem' or 'servico'"]));
+    return next(validationError([{ tipo_bem: "tipo_bem must be 'bem' or 'servico'" }]));
   }
 
+  const cleanTipo = tipo_bem_servico.trim();
+
   try {
-    const existing = await GoodsServices.findByPk(tipo_bem_servico);
+    const existing = await GoodsServices.findByPk(cleanTipo);
     if (existing) {
       return next(conflictError([{ tipo_bem_servico: "Bem/serviço já existe" }]));
     }
-    const item = await GoodsServices.create({ tipo_bem_servico: tipo_bem_servico.trim(), tipo_bem });
+    const item = await GoodsServices.create({ tipo_bem_servico: cleanTipo, tipo_bem });
     res.status(201).json({ tipo_bem_servico: item.tipo_bem_servico, tipo_bem: item.tipo_bem });
   } catch (e) {
+    if (e.name === "SequelizeUniqueConstraintError") {
+      return next(conflictError([{ tipo_bem_servico: "Bem/serviço já existe" }]));
+    }
     next(genericError("Error creating goods service"));
   }
 };

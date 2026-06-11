@@ -41,6 +41,14 @@ app.options(/.*/, cors(corsOptions))
 app.use(compression())
 app.use(express.json());
 
+// Express 5 leaves req.body undefined when no JSON body is sent; default it to
+// an empty object so controllers can destructure safely and report missing
+// fields as 400 instead of crashing into the generic 500 handler.
+app.use((req, res, next) => {
+    if (req.body === undefined) req.body = {};
+    next();
+});
+
 // Global rate limit. Generous because legitimate clients are chatty: the public
 // kiosk panel pushes telemetry on an interval and fans out the goods listing
 // into several backend reads, and the admin dashboard auto-refreshes.
@@ -148,6 +156,44 @@ app.use((err, req, res, next) => {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
         err.message = "Invalid JSON payload";
         err.status = 400;
+    }
+
+    // Safety net for database errors that escape controller-level handling,
+    // so malformed client input never surfaces as a generic 500.
+    if (!err.status) {
+        if (err.name === "CastError") {
+            // Mongoose: malformed ObjectId or value in a query/route param
+            err.status = 400;
+            err.message = "Invalid identifier or value format";
+        } else if (err.name === "ValidationError" && err.errors) {
+            // Mongoose schema validation
+            err.status = 400;
+            const fields = Object.fromEntries(
+                Object.entries(err.errors).map(([path, e]) => [path, e.message])
+            );
+            err.errors = fields;
+            err.message = "Validation failed";
+        } else if (err.name === "SequelizeValidationError") {
+            err.status = 400;
+            err.message = "Validation failed";
+        } else if (err.name === "SequelizeUniqueConstraintError") {
+            err.status = 409;
+            err.message = "Conflict Found";
+        } else if (err.name === "SequelizeForeignKeyConstraintError") {
+            err.status = 409;
+            err.message = "Operation conflicts with related resources";
+            err.errors = undefined;
+        } else if (err.name === "MulterError") {
+            err.status = 400;
+        }
+    }
+
+    // Errors that reach this point without a status are unexpected internals
+    // (driver/library failures passed raw to next). Hide their details —
+    // controllers that want a 500 with a friendly message use genericError.
+    if (!err.status) {
+        err.message = "Internal server error";
+        delete err.errors;
     }
 
     res.status(err.status || 500).json({

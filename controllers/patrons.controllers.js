@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import { Entities, Locations, Contacts, Donations } from "../models/db.config.js";
-import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, syncEntityRelations } from "../utils/entity.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
@@ -37,15 +37,27 @@ const buildPatronSearch = (q) => {
   };
 };
 
+const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
 export const createPatron = async (req, res, next) => {
   const { location, entity, contacts } = req.body;
 
   const missingFields = [];
   if (!location) missingFields.push("location");
   if (!entity) missingFields.push("entity");
+  // Without nif_nipc the entity lookup below throws a Sequelize "invalid
+  // undefined value" error that would surface as a 500.
+  if (entity && !entity.nif_nipc) missingFields.push("entity.nif_nipc");
 
   if (missingFields.length) {
     return next(missingFieldError(missingFields));
+  }
+
+  if (!isPlainObject(location) || !isPlainObject(entity)) {
+    return next(validationError([{ body: "location and entity must be objects" }]));
+  }
+  if (contacts !== undefined && !Array.isArray(contacts)) {
+    return next(validationError([{ contacts: "contacts must be an array" }]));
   }
 
   const transaction = await Entities.sequelize.transaction();
@@ -230,6 +242,8 @@ export const updatePatron = async (req, res, next) => {
       next(sequelizeValidationError(e.errors));
     } else if (e.name === "SequelizeUniqueConstraintError") {
       next(conflictError([{ message: e.message }]));
+    } else if (e.status && e.status < 500) {
+      next(e);
     } else {
       next(genericError("Error updating patron"));
     }

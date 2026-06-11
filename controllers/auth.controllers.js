@@ -44,10 +44,16 @@ export const login = async (req, res, next) => {
       return next(missingFieldError(["email_login or nif_nipc", "password"]));
     }
 
-    const where = nif_nipc ? { nif_nipc } : { email_login };
+    if (typeof password !== "string") {
+      return next(validationError([{ password: "password must be a string" }]));
+    }
+
+    const where = nif_nipc ? { nif_nipc: String(nif_nipc) } : { email_login: String(email_login) };
     const entity = await Entities.findOne({ where });
 
-    if (!entity) {
+    // entity.password can be null for accounts created without credentials;
+    // treat them as invalid login instead of letting bcrypt throw a 500.
+    if (!entity || !entity.password) {
       return next(unauthorizedError("Invalid credentials"));
     }
 
@@ -125,10 +131,15 @@ export const getProfile = async (req, res, next) => {
 export const updateProfilePic = async (req, res, next) => {
   try {
     const { profile_pic } = req.body;
+
+    if (profile_pic !== undefined && profile_pic !== null && typeof profile_pic !== "string") {
+      return next(validationError([{ profile_pic: "profile_pic must be a string or null" }]));
+    }
+
     const entity = await Entities.findByPk(req.user.nif_nipc);
     if (!entity) return next(unauthorizedError("User not found"));
     await entity.update({ profile_pic: profile_pic ?? null });
-    res.json({ profile_pic });
+    res.json({ profile_pic: profile_pic ?? null });
   } catch (error) {
     next(genericError("Error updating profile picture: " + error.message));
   }
@@ -188,6 +199,12 @@ export const changePassword = async (req, res, next) => {
       return next(missingFieldError(["currentPassword", "newPassword"]));
     }
 
+    if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
+      return next(
+        validationError([{ password: "Passwords must be strings" }]),
+      );
+    }
+
     if (newPassword.length < 8) {
       return next(
         validationError([
@@ -237,7 +254,7 @@ export const changePassword = async (req, res, next) => {
 
     const entity = await Entities.findByPk(nif_nipc);
 
-    if (!entity) {
+    if (!entity || !entity.password) {
       return next(unauthorizedError("User not found"));
     }
 

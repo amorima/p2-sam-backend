@@ -1,6 +1,6 @@
 import { Op, fn, col, cast, where as sequelizeWhere } from "sequelize";
 import { Donations, FinancialLogs, Entities } from "../models/db.config.js";
-import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
+import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError, validationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { buildFinancialLogData } from "../utils/donation.utils.js";
 import { persistNotification, emitToAdmins, emitToUser } from "../utils/socket.js";
@@ -30,8 +30,35 @@ const buildDonationSearch = (q) => {
   };
 };
 
+// financial_log is spread into the FinancialLogs document, so anything other
+// than a plain object would silently produce garbage records.
+const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+const DONATION_ESTADOS = ["ACEITE", "REJEITADO", "PENDENTE"];
+const DONATION_TIPOS = ["NUMERARIO", "REFERENCIA", "CHEQUE", "TRANSFERENCIA"];
+
+// Invalid enum values reach MySQL as a DatabaseError (500); reject them
+// upfront with a 400 instead.
+const invalidDonationEnums = ({ estado, tipo_donativo }) => {
+  const errors = [];
+  if (estado !== undefined && !DONATION_ESTADOS.includes(estado)) {
+    errors.push({ estado: `estado must be one of: ${DONATION_ESTADOS.join(", ")}` });
+  }
+  if (tipo_donativo !== undefined && !DONATION_TIPOS.includes(tipo_donativo)) {
+    errors.push({ tipo_donativo: `tipo_donativo must be one of: ${DONATION_TIPOS.join(", ")}` });
+  }
+  return errors.length ? validationError(errors) : null;
+};
+
 export const createDonation = async (req, res, next) => {
   const { financial_log, anonimo, estado, ...donationData } = req.body;
+
+  if (financial_log !== undefined && !isPlainObject(financial_log)) {
+    return next(validationError([{ financial_log: "financial_log must be an object" }]));
+  }
+
+  const enumError = invalidDonationEnums({ estado, tipo_donativo: donationData.tipo_donativo });
+  if (enumError) return next(enumError);
 
   try {
     if (anonimo !== undefined) donationData.anonimo = anonimo;
@@ -60,6 +87,8 @@ export const createDonation = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ mecena_nif_nipc: "Referenced patron does not exist" }]));
     } else {
       next(genericError("Error creating donation"));
     }
@@ -160,6 +189,9 @@ export const updateDonation = async (req, res, next) => {
   const { id_donation } = req.params;
   const { financial_log, ...updateData } = req.body;
 
+  const enumError = invalidDonationEnums(updateData);
+  if (enumError) return next(enumError);
+
   try {
     const donation = await Donations.findByPk(id_donation);
     if (!donation) return next(notFoundError("Donation", id_donation));
@@ -178,6 +210,8 @@ export const updateDonation = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ mecena_nif_nipc: "Referenced patron does not exist" }]));
     } else {
       next(genericError("Error updating donation"));
     }
@@ -212,6 +246,13 @@ export const createPatronDonation = async (req, res, next) => {
     return next(forbiddenError('You do not have permission to create donations for this patron'));
   }
 
+  if (financial_log !== undefined && !isPlainObject(financial_log)) {
+    return next(validationError([{ financial_log: "financial_log must be an object" }]));
+  }
+
+  const enumError = invalidDonationEnums({ estado, tipo_donativo: donationData.tipo_donativo });
+  if (enumError) return next(enumError);
+
   try {
     // Only include anonimo and estado if explicitly provided
     donationData.mecena_nif_nipc = nif_nipc;
@@ -241,6 +282,8 @@ export const createPatronDonation = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ mecena_nif_nipc: "Referenced patron does not exist" }]));
     } else {
       next(genericError("Error creating patron donation"));
     }
@@ -287,12 +330,17 @@ export const getAllPatronDonation = async (req, res, next) => {
 
 export const updatePatronDonation = async (req, res, next) => {
   const { id_donation, nif_nipc } = req.params;
-  const { financial_log, ...updateData } = req.body;
+  // mecena_nif_nipc is stripped so a patron cannot reassign a donation to
+  // another entity through this self-service route.
+  const { financial_log, mecena_nif_nipc, ...updateData } = req.body;
 
   // Validate nif_nipc format
   if (!/^\d{9}$/.test(nif_nipc)) {
     return next(unauthorizedError('Invalid entity identifier format'));
   }
+
+  const enumError = invalidDonationEnums(updateData);
+  if (enumError) return next(enumError);
 
   try {
     const donation = await Donations.findOne({
@@ -306,6 +354,8 @@ export const updatePatronDonation = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ mecena_nif_nipc: "Referenced patron does not exist" }]));
     } else {
       next(genericError("Error updating patron donation"));
     }

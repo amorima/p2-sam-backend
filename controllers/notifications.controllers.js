@@ -1,12 +1,22 @@
 import { Notifications } from "../models/db.config.js";
-import { genericError, notFoundError } from "../utils/error.utils.js";
+import { genericError, notFoundError, validationError, missingFieldError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 
 export const createNotification = async (req, res, next) => {
+  const { titulo, destinatario } = req.body;
+
+  const missingFields = [];
+  if (!titulo) missingFields.push("titulo");
+  if (!destinatario) missingFields.push("destinatario");
+  if (missingFields.length) return next(missingFieldError(missingFields));
+
   try {
     const notification = await Notifications.create(req.body);
     res.status(201).json(notification);
   } catch (e) {
+    if (e.name === "ValidationError" || e.name === "CastError") {
+      return next(validationError([{ notification: "Invalid notification data" }]));
+    }
     next(genericError("Error creating notification"));
   }
 };
@@ -18,6 +28,7 @@ export const getNotification = async (req, res, next) => {
     if (!notification) return next(notFoundError("Notification", id));
     res.json(notification);
   } catch (e) {
+    if (e.name === "CastError") return next(notFoundError("Notification", id));
     next(genericError("Error fetching notification"));
   }
 };
@@ -63,6 +74,7 @@ export const markAsRead = async (req, res, next) => {
     if (!notification) return next(notFoundError("Notification", id));
     res.json(notification);
   } catch (e) {
+    if (e.name === "CastError") return next(notFoundError("Notification", id));
     next(genericError("Error marking notification as read"));
   }
 };
@@ -94,6 +106,7 @@ export const deleteNotification = async (req, res, next) => {
     await notification.deleteOne();
     res.status(204).send();
   } catch (e) {
+    if (e.name === "CastError") return next(notFoundError("Notification", id));
     next(genericError("Error deleting notification"));
   }
 };

@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import { Needs, NeedItem, Institutions, Entities } from "../models/db.config.js";
-import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
+import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError, validationError, missingFieldError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import {
   buildNeedItems,
@@ -8,8 +8,20 @@ import {
 } from "../utils/need.utils.js";
 import { persistNotification, emitToAdmins, emitToUser } from "../utils/socket.js";
 
+const NEED_ESTADOS = ["PENDENTE", "ACEITE", "REJEITADO"];
+
+// Invalid enum values reach MySQL as a DatabaseError (500); reject them
+// upfront with a 400 instead.
+const invalidNeedEstado = (estado) =>
+  estado !== undefined && !NEED_ESTADOS.includes(estado)
+    ? validationError([{ estado: `estado must be one of: ${NEED_ESTADOS.join(", ")}` }])
+    : null;
+
 export const createNeed = async (req, res, next) => {
   const { nif_nipc, estado, urgente, items } = req.body;
+
+  const estadoError = invalidNeedEstado(estado);
+  if (estadoError) return next(estadoError);
 
   try {
     const transaction = await Needs.sequelize.transaction();
@@ -34,7 +46,9 @@ export const createNeed = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 422 && e.errors) {
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ nif_nipc: "Referenced institution does not exist" }]));
+    } else if (e.status && e.status < 500) {
       next(e);
     } else {
       console.error("[needs] create error:", e?.message, e?.original?.sqlMessage ?? '');
@@ -149,6 +163,9 @@ export const updateNeed = async (req, res, next) => {
   const { estado, items, nif_nipc, panelItemIds, businessMatches } = req.body;
   const updateData = {};
 
+  const estadoError = invalidNeedEstado(estado);
+  if (estadoError) return next(estadoError);
+
   if (estado !== undefined) updateData.estado = estado;
   if (nif_nipc !== undefined) updateData.nif_nipc = nif_nipc;
 
@@ -242,7 +259,13 @@ export const updateNeed = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ nif_nipc: "Referenced resource does not exist" }]));
+    } else if (e.status && e.status < 500) {
+      // e.g. validationError thrown by ensureGoodsServicesForItems
+      next(e);
     } else {
+      console.error("[needs] update error:", e?.message, e?.original?.sqlMessage ?? '');
       next(genericError("Error updating need"));
     }
   }
@@ -253,8 +276,12 @@ export const businessResponse = async (req, res, next) => {
   const { id_item, estado, motivo } = req.body
   const negocio_nif = req.user.nif_nipc
 
+  if (id_item === undefined || id_item === null) {
+    return next(missingFieldError(['id_item']))
+  }
+
   if (!['ACEITE', 'RECUSADO', 'CONCLUIDO'].includes(estado)) {
-    return next(genericError('Estado inválido'))
+    return next(validationError([{ estado: "estado must be one of: ACEITE, RECUSADO, CONCLUIDO" }]))
   }
 
   try {
@@ -319,6 +346,9 @@ export const createInstitutionNeed = async (req, res, next) => {
     return next(forbiddenError('You do not have permission to create needs for this institution'));
   }
 
+  const estadoError = invalidNeedEstado(estado);
+  if (estadoError) return next(estadoError);
+
   try {
     const transaction = await Needs.sequelize.transaction();
     try {
@@ -350,8 +380,10 @@ export const createInstitutionNeed = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 422 && e.errors) {
-      // ValidationError from ensureGoodsServicesForItems — propagate as 422
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ nif_nipc: "Referenced institution does not exist" }]));
+    } else if (e.status && e.status < 500) {
+      // e.g. validationError thrown by ensureGoodsServicesForItems
       next(e);
     } else {
       console.error("[institutions/needs] create error:", e?.message, e?.original?.sqlMessage ?? '', e?.errors ?? '');
@@ -407,7 +439,10 @@ export const updateInstitutionNeed = async (req, res, next) => {
   if (!/^\d{9}$/.test(nif_nipc)) {
     return next(unauthorizedError('Invalid entity identifier format'));
   }
-  
+
+  const estadoError = invalidNeedEstado(estado);
+  if (estadoError) return next(estadoError);
+
   if (estado !== undefined) updateData.estado = estado;
 
   try {
@@ -438,7 +473,11 @@ export const updateInstitutionNeed = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
+    } else if (e.status && e.status < 500) {
+      // e.g. validationError thrown by ensureGoodsServicesForItems
+      next(e);
     } else {
+      console.error("[institutions/needs] update error:", e?.message, e?.original?.sqlMessage ?? '');
       next(genericError("Error updating institution need"));
     }
   }

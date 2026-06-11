@@ -1,5 +1,6 @@
 import { ApiTokens } from '../models/db.config.js';
 import { generateApiToken, hashApiToken } from '../utils/auth.utils.js';
+import { genericError, notFoundError } from '../utils/error.utils.js';
 
 export const listTokens = async (req, res, next) => {
   try {
@@ -9,13 +10,15 @@ export const listTokens = async (req, res, next) => {
       .sort({ createdAt: -1 })
     res.json(tokens)
   } catch (err) {
-    next(err)
+    console.error('[api-tokens] list error:', err?.message)
+    next(genericError('Error fetching API tokens'))
   }
 }
 
 export const createToken = async (req, res, next) => {
   try {
-    const { label } = (req.body ?? {})
+    const rawLabel = (req.body ?? {}).label
+    const label = typeof rawLabel === 'string' && rawLabel.trim() ? rawLabel.trim().slice(0, 100) : null
 
     // Revoke all existing tokens for this user — one active token per entity
     await ApiTokens.updateMany(
@@ -32,7 +35,7 @@ export const createToken = async (req, res, next) => {
       role: req.user.role,
       token_hash: hash,
       token_prefix: prefix,
-      label: label || 'Token de API'
+      label: label ?? 'Token de API'
     })
 
     // Return the full plain token ONCE — it is never stored and cannot be recovered
@@ -44,7 +47,8 @@ export const createToken = async (req, res, next) => {
       createdAt: doc.createdAt
     })
   } catch (err) {
-    next(err)
+    console.error('[api-tokens] create error:', err?.message)
+    next(genericError('Error creating API token'))
   }
 }
 
@@ -54,7 +58,7 @@ export const revokeToken = async (req, res, next) => {
       _id: req.params.id,
       nif_nipc: req.user.nif_nipc
     })
-    if (!token) return res.status(404).json({ description: 'Token não encontrado' })
+    if (!token) return next(notFoundError('Token', req.params.id))
 
     token.revoked = true
     token.revoked_at = new Date()
@@ -62,6 +66,9 @@ export const revokeToken = async (req, res, next) => {
 
     res.status(204).send()
   } catch (err) {
-    next(err)
+    // Malformed ObjectId in the route param
+    if (err.name === 'CastError') return next(notFoundError('Token', req.params.id))
+    console.error('[api-tokens] revoke error:', err?.message)
+    next(genericError('Error revoking API token'))
   }
 }

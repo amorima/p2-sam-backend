@@ -1,9 +1,13 @@
 import { LockersTelemetry } from "../models/db.config.js";
-import { genericError, notFoundError } from "../utils/error.utils.js";
+import { genericError, notFoundError, validationError, missingFieldError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { upsertTelemetryNotification, emitToAdmins, emitTelemetryUpdate } from "../utils/socket.js";
 
 export const createLockerTelemetry = async (req, res, next) => {
+  if (req.body.locker_id === undefined || req.body.locker_id === null) {
+    return next(missingFieldError(["locker_id"]));
+  }
+
   try {
     const telemetry = await LockersTelemetry.create({
       ...req.body,
@@ -18,6 +22,9 @@ export const createLockerTelemetry = async (req, res, next) => {
 
     res.status(201).json(telemetry);
   } catch (e) {
+    if (e.name === "ValidationError" || e.name === "CastError") {
+      return next(validationError([{ telemetry: "Invalid telemetry data" }]));
+    }
     console.error("[telemetry] create error:", e);
     next(genericError("Error creating locker telemetry"));
   }

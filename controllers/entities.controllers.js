@@ -1,5 +1,5 @@
 import { Entities, Offers, Needs, NeedItem, Donations, Business, Institutions, Contacts, LocationEntity } from "../models/db.config.js";
-import { genericError, notFoundError, missingFieldError, validationError, forbiddenError } from "../utils/error.utils.js";
+import { genericError, notFoundError, missingFieldError, validationError, forbiddenError, conflictError, sequelizeValidationError } from "../utils/error.utils.js";
 
 export const updateEntityProfile = async (req, res, next) => {
   const { nif_nipc } = req.params;
@@ -7,6 +7,13 @@ export const updateEntityProfile = async (req, res, next) => {
 
   if (!nome_entidade && !email_login) {
     return next(missingFieldError(["nome_entidade or email_login"]));
+  }
+
+  if (nome_entidade && typeof nome_entidade !== "string") {
+    return next(validationError([{ nome_entidade: "nome_entidade must be a string" }]));
+  }
+  if (email_login && typeof email_login !== "string") {
+    return next(validationError([{ email_login: "email_login must be a string" }]));
   }
 
   try {
@@ -23,6 +30,12 @@ export const updateEntityProfile = async (req, res, next) => {
       email_login: entity.email_login,
     });
   } catch (e) {
+    if (e.name === "SequelizeValidationError") {
+      return next(sequelizeValidationError(e.errors));
+    }
+    if (e.name === "SequelizeUniqueConstraintError") {
+      return next(conflictError([{ email_login: "Email already in use" }]));
+    }
     next(genericError("Error updating entity profile"));
   }
 };

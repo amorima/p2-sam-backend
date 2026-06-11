@@ -1,5 +1,5 @@
 import { Offers, Business } from "../models/db.config.js";
-import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError } from "../utils/error.utils.js";
+import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError, validationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { ensureGoodsService } from "../utils/offer.utils.js";
 
@@ -24,7 +24,9 @@ export const createOffer = async (req, res, next) => {
     await transaction.rollback();
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ negocio_nif_nipc: "Referenced business does not exist" }]));
+    } else if (e.status && e.status < 500) {
       next(e);
     } else {
       next(genericError("Error creating offer"));
@@ -84,7 +86,9 @@ export const updateOffer = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ negocio_nif_nipc: "Referenced business does not exist" }]));
+    } else if (e.status && e.status < 500) {
       next(e);
     } else {
       next(genericError("Error updating offer"));
@@ -145,7 +149,9 @@ export const createBusinessOffer = async (req, res, next) => {
     await transaction.rollback();
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ negocio_nif_nipc: "Referenced business does not exist" }]));
+    } else if (e.status && e.status < 500) {
       next(e);
     } else {
       next(genericError("Error creating business offer"));
@@ -156,14 +162,15 @@ export const createBusinessOffer = async (req, res, next) => {
 export const getBusinessOffer = async (req, res, next) => {
   const { id_offer, nif_nipc } = req.params;
 
+  // Validate nif_nipc format before touching the database
+  if (!/^\d{9}$/.test(nif_nipc)) {
+    return next(unauthorizedError('Invalid entity identifier format'));
+  }
+
   try {
     const offer = await Offers.findOne({
       where: { id_oferta: id_offer, negocio_nif_nipc: nif_nipc },
     });
-    // Validate nif_nipc format
-    if (!/^\d{9}$/.test(nif_nipc)) {
-      return next(unauthorizedError('Invalid entity identifier format'));
-    }
 
     if (!offer) return next(notFoundError("Offer", id_offer));
     res.json({ offer });
@@ -228,7 +235,9 @@ export const updateBusinessOffer = async (req, res, next) => {
   } catch (e) {
     if (e.name === "SequelizeValidationError") {
       next(sequelizeValidationError(e.errors));
-    } else if (e.status === 400) {
+    } else if (e.name === "SequelizeForeignKeyConstraintError") {
+      next(validationError([{ negocio_nif_nipc: "Referenced business does not exist" }]));
+    } else if (e.status && e.status < 500) {
       next(e);
     } else {
       next(genericError("Error updating business offer"));

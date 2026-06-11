@@ -1,9 +1,11 @@
 import { Institutions, Entities, Locations, Contacts, Needs, NeedItem } from "../models/db.config.js";
-import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations, buildEntitySearch } from "../utils/entity.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
 import { sendRegistrationEmail } from "../utils/email.utils.js";
+
+const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
 export const createInstitution = async (req, res, next) => {
   const { location, entity, contacts, institution } = req.body;
@@ -12,9 +14,19 @@ export const createInstitution = async (req, res, next) => {
   if (!location) missingFields.push("location");
   if (!entity) missingFields.push("entity");
   if (!institution) missingFields.push("institution");
+  // Without nif_nipc the entity lookup below throws a Sequelize "invalid
+  // undefined value" error that would surface as a 500.
+  if (entity && !entity.nif_nipc) missingFields.push("entity.nif_nipc");
 
   if (missingFields.length) {
     return next(missingFieldError(missingFields));
+  }
+
+  if (!isPlainObject(location) || !isPlainObject(entity) || !isPlainObject(institution)) {
+    return next(validationError([{ body: "location, entity and institution must be objects" }]));
+  }
+  if (contacts !== undefined && !Array.isArray(contacts)) {
+    return next(validationError([{ contacts: "contacts must be an array" }]));
   }
 
   const transaction = await Institutions.sequelize.transaction();

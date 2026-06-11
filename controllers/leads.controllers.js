@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import { Leads, Panels, Citizens, Lockers, NeedItem } from "../models/db.config.js";
-import { genericError, notFoundError, missingFieldError, conflictError, validationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, missingFieldError, conflictError, validationError, sequelizeValidationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { sendPinEmail } from "../utils/email.utils.js";
 import { persistNotification, emitToAdmins } from "../utils/socket.js";
@@ -112,6 +112,9 @@ export const createLead = async (req, res, next) => {
     res.status(201).json(lead);
   } catch (e) {
     await transaction.rollback();
+    if (e.name === "SequelizeValidationError") {
+      return next(sequelizeValidationError(e.errors));
+    }
     console.error("[leads] create error:", e?.name, e?.message, e?.original?.sqlMessage ?? '', e?.errors ?? '');
     next(genericError("Error creating lead"));
   }
@@ -211,12 +214,21 @@ export const updateLead = async (req, res, next) => {
     }
 
     if (id_pedido) updates.id_pedido = id_pedido;
-    if (estado) updates.estado = estado;
+    if (estado) {
+      // Invalid enum values reach MySQL as a DatabaseError (500); reject upfront.
+      if (!["ENTREGUE", "PENDENTE", "EXPIRADO"].includes(estado)) {
+        return next(validationError([{ estado: "estado must be one of: ENTREGUE, PENDENTE, EXPIRADO" }]));
+      }
+      updates.estado = estado;
+    }
     if (pin_entrega) updates.pin_entrega = pin_entrega;
 
     await lead.update(updates);
     res.json(lead);
   } catch (e) {
+    if (e.name === "SequelizeValidationError") {
+      return next(sequelizeValidationError(e.errors));
+    }
     next(genericError("Error updating lead"));
   }
 };
@@ -248,7 +260,8 @@ export const validateLead = async (req, res, next) => {
   try {
     const lead = await Leads.findByPk(id_lead);
     if (!lead) return next(notFoundError("Lead", id_lead));
-    if (lead.pin_entrega !== pin_entrega) {
+    // Coerce both sides: the client may send the PIN as number or string.
+    if (String(lead.pin_entrega) !== String(pin_entrega)) {
       return next(validationError([{ pin_entrega: "Pin does not match" }]));
     }
 

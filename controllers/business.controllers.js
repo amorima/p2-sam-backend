@@ -1,10 +1,12 @@
 import { Business, Entities, Locations, Contacts, Offers } from "../models/db.config.js";
-import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError } from "../utils/error.utils.js";
+import { genericError, notFoundError, conflictError, missingFieldError, sequelizeValidationError, validationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import { formatResponse, entityInclude, syncEntityRelations, buildEntitySearch } from "../utils/entity.utils.js";
 import { ensureGoodsService } from "../utils/offer.utils.js";
 import { hashPassword } from "../utils/auth.utils.js";
 
+
+const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
 export const createBusiness = async (req, res, next) => {
   const { location, entity, contacts, business, offers } = req.body;
@@ -13,9 +15,22 @@ export const createBusiness = async (req, res, next) => {
   if (!location) missingFields.push("location");
   if (!entity) missingFields.push("entity");
   if (!business) missingFields.push("business");
+  // Without nif_nipc the entity lookup below throws a Sequelize "invalid
+  // undefined value" error that would surface as a 500.
+  if (entity && !entity.nif_nipc) missingFields.push("entity.nif_nipc");
 
   if (missingFields.length) {
     return next(missingFieldError(missingFields));
+  }
+
+  if (!isPlainObject(location) || !isPlainObject(entity) || !isPlainObject(business)) {
+    return next(validationError([{ body: "location, entity and business must be objects" }]));
+  }
+  if (contacts !== undefined && !Array.isArray(contacts)) {
+    return next(validationError([{ contacts: "contacts must be an array" }]));
+  }
+  if (offers !== undefined && !Array.isArray(offers)) {
+    return next(validationError([{ offers: "offers must be an array" }]));
   }
 
   const transaction = await Business.sequelize.transaction();

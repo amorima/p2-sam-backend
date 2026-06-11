@@ -1,5 +1,5 @@
 import { FinancialLogs, InteractionLogs } from "../models/db.config.js";
-import { genericError, notFoundError } from "../utils/error.utils.js";
+import { genericError, notFoundError, validationError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 export const getFinancialLog = async (req, res, next) => {
   const { id } = req.params;
@@ -9,6 +9,7 @@ export const getFinancialLog = async (req, res, next) => {
     if (!financialLog) return next(notFoundError("FinancialLog", id));
     res.json(financialLog);
   } catch (e) {
+    if (e.name === "CastError") return next(notFoundError("FinancialLog", id));
     next(genericError("Error fetching financial log"));
   }
 };
@@ -31,6 +32,9 @@ export const createInteractionLog = async (req, res, next) => {
     const interactionLog = await InteractionLogs.create(req.body);
     res.status(201).json(interactionLog);
   } catch (e) {
+    if (e.name === "ValidationError" || e.name === "CastError") {
+      return next(validationError([{ interaction_log: "Invalid interaction log data" }]));
+    }
     next(genericError("Error creating interaction log"));
   }
 };
