@@ -65,6 +65,7 @@ const globalLimiter = rateLimit({
   skip: (req) =>
     req.path.startsWith('/socket.io/')
     || req.path.startsWith('/telemetry')
+    || req.path.startsWith('/lockers')
     || req.path.startsWith('/leads')
     || req.path.startsWith('/needs')
     || req.path.startsWith('/institutions'),
@@ -108,6 +109,7 @@ import vouchersRoutes from "./routes/vouchers.routes.js";
 import notificationsRoutes from "./routes/notifications.routes.js";
 import logsRoutes from "./routes/logs.routes.js";
 import telemetryRoutes from "./routes/telemetry.routes.js";
+import lockersRoutes from "./routes/lockers.routes.js";
 import goodsServicesRoutes from "./routes/goods_services.routes.js";
 import apiTokensRoutes from "./routes/api_tokens.routes.js";
 
@@ -129,6 +131,7 @@ app.use('/vouchers', vouchersRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/logs', logsRoutes);
 app.use('/telemetry', telemetryRoutes);
+app.use('/lockers', lockersRoutes);
 app.use('/goods-services', goodsServicesRoutes);
 
 app.use("/api/upload", minioRoutes);
