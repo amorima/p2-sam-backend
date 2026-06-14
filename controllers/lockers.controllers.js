@@ -1,7 +1,7 @@
-import { Lockers, Leads, LockersTelemetry } from "../models/db.config.js";
+import { Lockers, Leads } from "../models/db.config.js";
 import { genericError, notFoundError, validationError, missingFieldError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
-import { persistNotification, emitToAdmins, emitTelemetryUpdate } from "../utils/socket.js";
+import { persistNotification, emitToAdmins } from "../utils/socket.js";
 
 // ---------------------------------------------------------------------------
 // In-memory door state, keyed by locker id.
@@ -117,10 +117,12 @@ export const verifyPin = async (req, res, next) => {
 };
 
 // POST /lockers/:id_locker/door  { estado: "ABERTA" | "FECHADA", ... }
-// Fast door-state ping from the Arduino. Updates the in-memory snapshot on
-// every call (so "online" stays true via heartbeats) and persists a telemetry
-// event only when the state actually changes.
-export const updateDoor = async (req, res, next) => {
+// Fast door-state ping from the Arduino. Updates the in-memory snapshot only —
+// this is a low-latency real-time channel for the deposit flow, NOT telemetry.
+// The cacifo's telemetry (health + door status) is reported by the Raspberry,
+// so the door pings don't flood MongoDB nor overwrite the device's full
+// telemetry in the equipment dashboard.
+export const updateDoor = (req, res, next) => {
   const id = parseLockerId(req.params.id_locker);
   if (!id) return next(validationError([{ id_locker: "id_locker must be a positive integer" }]));
 
@@ -138,20 +140,6 @@ export const updateDoor = async (req, res, next) => {
     last_seen: now,
     last_change: changed ? now : prev.last_change,
   });
-
-  // Persist + broadcast only on a real transition, never on heartbeats.
-  if (changed) {
-    const evento = estado === "ABERTA" ? "PORTA_ABERTA" : "PORTA_FECHADA";
-    LockersTelemetry.create({
-      evento,
-      locker_id: id,
-      tipo: "LOCKER",
-      status: { sensor_porta: estado },
-      timestamp: new Date(now),
-    })
-      .then((doc) => emitTelemetryUpdate(doc.toObject()))
-      .catch((e) => console.error("[lockers] door telemetry error:", e?.message));
-  }
 
   res.json(snapshotFor(id));
 };
