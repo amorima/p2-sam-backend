@@ -103,8 +103,8 @@ export const createLead = async (req, res, next) => {
 
     persistNotification({
       tipo: 'lead_criado',
-      titulo: 'Nova Solicitação no Painel',
-      corpo: `${nome_cidadao} solicitou "${needItem.tipo_bem_servico}"`,
+      titulo: 'Nova Intenção de Doação',
+      corpo: `${nome_cidadao} pretende doar "${needItem.tipo_bem_servico}"`,
       destinatario: 'admin',
       payload: { id_lead: lead.id_lead, contacto_cidadao, item: needItem.tipo_bem_servico }
     }).then(emitToAdmins);

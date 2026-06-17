@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { Needs, NeedItem, Institutions, Entities } from "../models/db.config.js";
+import { Needs, NeedItem, Institutions, Entities, ItemVouchers } from "../models/db.config.js";
 import { genericError, notFoundError, sequelizeValidationError, forbiddenError, unauthorizedError, validationError, missingFieldError } from "../utils/error.utils.js";
 import { parsePagination, buildPageLinks } from "../utils/paginate.utils.js";
 import {
@@ -160,7 +160,7 @@ export const getAllNeeds = async (req, res, next) => {
 
 export const updateNeed = async (req, res, next) => {
   const { id_need } = req.params;
-  const { estado, items, nif_nipc, panelItemIds, businessMatches } = req.body;
+  const { estado, items, nif_nipc, panelItemIds, businessMatches, voucherMatches } = req.body;
   const updateData = {};
 
   const estadoError = invalidNeedEstado(estado);
@@ -206,6 +206,20 @@ export const updateNeed = async (req, res, next) => {
             { where: { id_item: bm.id_item, id_pedido: id_need }, transaction }
           )
         }
+      }
+
+      // Persist voucher match refs to MongoDB (no MySQL schema change needed).
+      if (Array.isArray(voucherMatches) && voucherMatches.length) {
+        const ops = voucherMatches
+          .filter(vm => vm.id_item && vm.voucher_ref)
+          .map(vm => ({
+            updateOne: {
+              filter: { id_item: vm.id_item, id_pedido: Number(id_need) },
+              update: { $set: { voucher_ref: vm.voucher_ref, data_emissao: new Date() } },
+              upsert: true
+            }
+          }))
+        if (ops.length) await ItemVouchers.bulkWrite(ops)
       }
 
       let updatedItems = [];
@@ -331,6 +345,15 @@ export const deleteNeed = async (req, res, next) => {
     next(genericError("Error deleting need"));
   }
 };
+
+export const getItemVouchers = async (req, res, next) => {
+  try {
+    const docs = await ItemVouchers.find({}).lean()
+    res.json(docs)
+  } catch (e) {
+    next(genericError('Error fetching item vouchers'))
+  }
+}
 
 export const createInstitutionNeed = async (req, res, next) => {
   const { nif_nipc } = req.params;

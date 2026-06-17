@@ -12,6 +12,7 @@ router.route('/')
     .post(verifyJWT, requireRoles('admin'), validateNeedCreate, deleteCache('/needs'), deleteCache('/goods-services'), needsController.createNeed)
 // Static routes must precede /:id_need to avoid param capture
 router.get('/stats', verifyInternalOrJWT, setCache(30), needsController.getNeedsStats)
+router.get('/item-vouchers', verifyInternalOrJWT, setCache(30), needsController.getItemVouchers)
 router.patch('/:id_need/business-response', verifyJWT, requireRoles(['admin', 'business']), deleteCache('/needs'), needsController.businessResponse)
 router.route('/:id_need')
     .get(verifyJWT, needsController.getNeed)
